@@ -73,7 +73,7 @@ test("wrap and marquee", () => {
 test("breathe stays in range and idle is static", () => {
 	for (let t = 0; t < 3000; t += 37) {
 		const o = breathe(t, 1000);
-		assert.ok(o >= 0.3 && o <= 1);
+		assert.ok(o >= 0 && o <= 1);
 	}
 	assert.equal(breathe(123, null), 1);
 });

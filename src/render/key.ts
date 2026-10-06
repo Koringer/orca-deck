@@ -20,12 +20,19 @@ function text(x: number, y: number, size: number, fill: string, value: string, w
 	return `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="middle">${esc(value)}</text>`;
 }
 
-function frame(color: string, opacity: number, body: string) {
-	const inset = BORDER / 2;
+/** Thinnest border while breathing. */
+const MIN_BORDER = 2;
+/** Corner radius of the border's outer edge, kept constant while its width changes. */
+const OUTER_RADIUS = 29;
+
+/** `level` 0..1: border width from MIN_BORDER to BORDER, growing inward from a fixed outer edge. */
+function frame(color: string, level: number, body: string) {
+	const width = MIN_BORDER + (BORDER - MIN_BORDER) * level;
+	const inset = width / 2;
 	return (
 		`<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">` +
 		`<rect width="${SIZE}" height="${SIZE}" fill="${BG}"/>` +
-		`<rect x="${inset}" y="${inset}" width="${SIZE - BORDER}" height="${SIZE - BORDER}" rx="22" fill="none" stroke="${color}" stroke-width="${BORDER}" stroke-opacity="${opacity}"/>` +
+		`<rect x="${inset}" y="${inset}" width="${SIZE - width}" height="${SIZE - width}" rx="${OUTER_RADIUS - inset}" fill="none" stroke="${color}" stroke-width="${width}"/>` +
 		body +
 		`</svg>`
 	);

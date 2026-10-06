@@ -15,12 +15,15 @@ export const BG = "#0B0D12";
 export const MUTED = "#C8CCD6";
 export const FONT = "Helvetica Neue, Helvetica, Arial, sans-serif";
 
-/** Breathing opacity between 0.3 and 1, quantized so the key image only changes ~10 times per cycle. */
+/**
+ * Breathing level 0..1 (the key's border goes from thin to full width and back), quantized to 12
+ * steps so the key image only changes about 24 times per cycle. 1 (full border) when not breathing.
+ */
 export function breathe(now: number, periodMs: number | null): number {
 	if (!periodMs) return 1;
 	const phase = (now % periodMs) / periodMs;
 	const v = 0.5 - 0.5 * Math.cos(phase * 2 * Math.PI);
-	return Math.round((0.3 + 0.7 * v) * 10) / 10;
+	return Math.round(v * 12) / 12;
 }
 
 /** Character-window marquee: returns the visible slice of `text`, pausing at the start of each loop. */
