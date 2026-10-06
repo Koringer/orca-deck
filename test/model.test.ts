@@ -57,6 +57,8 @@ test("wrap and marquee", () => {
 	assert.deepEqual(wrap("fix-login", 9, 2), ["fix-login"]);
 	assert.deepEqual(wrap("checkout-pricing", 9, 2), ["checkout-", "pricing"]);
 	assert.equal(wrap("a-very-long-worktree-name-here", 9, 2), null);
+	assert.deepEqual(wrap("Fix login redirect loop", 10, 3), ["Fix login", "redirect", "loop"]);
+	assert.deepEqual(wrap("Internationalization", 10, 3), ["Internatio", "nalization"]);
 	assert.equal(marquee("short", 9, 0), "short");
 	assert.equal(marquee("abcdefghijkl", 5, 0).length, 5);
 });

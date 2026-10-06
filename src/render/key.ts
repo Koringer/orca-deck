@@ -31,30 +31,39 @@ function frame(color: string, opacity: number, body: string) {
 	);
 }
 
-/** Greedy word wrap on `-`, `_`, `/` and spaces; returns null when it doesn't fit in `maxLines`. */
+/**
+ * Greedy word wrap on `-`, `_`, `/` and spaces; words longer than a line are cut. Returns null when
+ * the text doesn't fit in `maxLines`.
+ */
 export function wrap(name: string, perLine: number, maxLines: number): string[] | null {
-	const words = name.split(/(?<=[-_/ ])/);
+	const words = name.split(/(?<=[-_/ ])/).flatMap((w) => w.match(new RegExp(`.{1,${perLine}}`, "gu")) ?? []);
 	const lines: string[] = [];
 	let line = "";
 	for (const word of words) {
-		if (word.length > perLine) return null;
 		if ((line + word).trimEnd().length <= perLine) line += word;
 		else {
 			lines.push(line.trimEnd());
-			line = word;
+			line = word.trimStart();
 		}
 	}
-	if (line) lines.push(line.trimEnd());
+	if (line.trim()) lines.push(line.trimEnd());
 	return lines.length <= maxLines ? lines : null;
 }
 
+/** Font sizes tried in turn until the name fits on 3 lines. */
+const NAME_SIZES = [18, 16, 14];
+
+/** Up to 3 centered lines above the status label, shrinking the font rather than scrolling. */
 function nameBlock(name: string, now: number): string {
-	const size = 19;
-	const perLine = fit(size);
-	const lines = wrap(name, perLine, 2);
-	if (lines?.length === 1) return text(72, 68, size, "#FFFFFF", lines[0]);
-	if (lines) return text(72, 56, size, "#FFFFFF", lines[0]) + text(72, 81, size, "#FFFFFF", lines[1]);
-	return text(72, 68, size, "#FFFFFF", marquee(name, perLine, now, 160, 8));
+	for (const size of NAME_SIZES) {
+		const lines = wrap(name, fit(size), 3);
+		if (!lines) continue;
+		const lineHeight = size + 2;
+		const first = 64 - ((lines.length - 1) * lineHeight) / 2;
+		return lines.map((l, i) => text(72, first + i * lineHeight, size, "#FFFFFF", l)).join("");
+	}
+	const size = NAME_SIZES[NAME_SIZES.length - 1];
+	return text(72, 64, size, "#FFFFFF", marquee(name, fit(size), now, 160, 8));
 }
 
 function holdOverlay(progress: number, label: string): string {
@@ -107,7 +116,7 @@ export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
 	const style = STATUS_STYLE[view.status];
 	// "done" only breathes until it has been looked at in Orca.
 	const period = view.status === "done" && !view.unread ? null : style.breatheMs;
-	let body = nameBlock(view.name, now) + text(72, 112, 18, style.color, style.label);
+	let body = nameBlock(view.name, now) + text(72, 114, 17, style.color, style.label);
 	if (hold !== null && hold > 0.15) body += holdOverlay(hold, "REPLACE");
 	return frame(style.color, breathe(now, period), body);
 }
