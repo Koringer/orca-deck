@@ -106,7 +106,10 @@ test("infobar: usage gauges at rest, details on focus", () => {
 	assert.ok(String(broken.detail.value).startsWith("Claude usage unavailable"));
 
 	const focus = renderInfobar({ connection: "ok", views: [view], hidden: 0, focus: view, usage, now: 0 });
-	assert.equal(focus.title.value, "fix-login");
-	assert.match(String(focus.detail.value), /WORKING · claude/);
-	assert.equal(focus.u1b.enabled, false);
+	assert.match(String(focus.title.value), /^fix-login · WORKING/);
+	assert.equal(focus.u1b.enabled, true, "line 2 keeps the usage while a worktree is focused");
+	assert.equal(focus.detail.enabled, false);
+
+	const offline = renderInfobar({ connection: "offline", views: [], hidden: 0, focus: null, usage, now: 0 });
+	assert.equal(offline.u1p.value, "72%");
 });

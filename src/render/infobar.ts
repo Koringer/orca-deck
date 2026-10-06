@@ -54,15 +54,12 @@ function usageColor(pct: number) {
 }
 
 /** Bottom line: token usage gauges (5h session + weekly), or a free text detail line. */
-function bottomUsage(usage: Usage | null, views: WorktreeView[], hidden: number, now: number): Feedback {
+function bottomUsage(usage: Usage | null, now: number): Feedback {
 	if (usage?.error) {
 		const name = usage.provider.charAt(0).toUpperCase() + usage.provider.slice(1);
 		return bottomDetail(`${name} usage unavailable: ${usage.error}`, now);
 	}
-	if (!usage || (!usage.session && !usage.weekly)) {
-		const total = `${views.length} worktree${views.length === 1 ? "" : "s"}${hidden ? ` (+${hidden} hidden)` : ""}`;
-		return bottomDetail(total, now);
-	}
+	if (!usage || (!usage.session && !usage.weekly)) return bottomDetail("Token usage: loading…", now);
 	const gauge = (prefix: string, label: string, w: UsageWindow | null): Feedback => {
 		const pct = Math.round(w?.usedPercent ?? 0);
 		const color = w ? usageColor(pct) : DIM;
@@ -84,24 +81,24 @@ export function describe(v: WorktreeView, now: number): string {
 }
 
 /**
- * - focus (a key was just pressed): worktree name + status · agent · time · current tool / last message · comment · branch
- * - otherwise: status counters (or "X needs you" when a worktree waits for input) + token usage gauges
+ * Line 1: what's going on (counters, "needs you", hooks warning, details of the pressed worktree,
+ * Orca offline). Line 2: always token usage (gauges, or why there are none).
  */
 export function renderInfobar({ connection, views, hidden, focus, usage, hooksIssue, now }: InfobarFrame): Feedback {
-	if (connection === "no-cli") return { ...topTitle("Orca CLI not found", STATUS_STYLE.error.color), ...bottomDetail("Set its path in the plugin settings", now) };
-	if (connection !== "ok") return { ...topTitle("Orca offline", "#FFFFFF"), ...bottomDetail("Press any key to open Orca", now) };
-
-	if (focus) {
-		return { ...topTitle(marquee(focus.name, 24, now), STATUS_STYLE[focus.status].color), ...bottomDetail(describe(focus, now), now) };
-	}
-
 	const asking = views.filter((v) => v.status === "input");
-	const top = hooksIssue
-		? topTitle(marquee(`⚠ ${hooksIssue}`, 24, now), STATUS_STYLE.working.color)
-		: asking.length === 1
-			? topTitle(marquee(`${asking[0].name} needs you`, 24, now), STATUS_STYLE.input.color)
-			: asking.length > 1
-				? topTitle(`${asking.length} worktrees need you`, STATUS_STYLE.input.color)
-				: topCounts(views, hidden);
-	return { ...top, ...bottomUsage(usage, views, hidden, now) };
+	const top =
+		connection === "no-cli"
+			? topTitle(marquee("Orca CLI not found · set its path in the plugin settings", 24, now), STATUS_STYLE.error.color)
+			: connection !== "ok"
+				? topTitle(marquee("Orca offline · press any key to open it", 24, now), "#FFFFFF")
+				: focus
+					? topTitle(marquee(`${focus.name} · ${describe(focus, now)}`, 24, now), STATUS_STYLE[focus.status].color)
+					: hooksIssue
+						? topTitle(marquee(`⚠ ${hooksIssue}`, 24, now), STATUS_STYLE.working.color)
+						: asking.length === 1
+							? topTitle(marquee(`${asking[0].name} needs you`, 24, now), STATUS_STYLE.input.color)
+							: asking.length > 1
+								? topTitle(`${asking.length} worktrees need you`, STATUS_STYLE.input.color)
+								: topCounts(views, hidden);
+	return { ...top, ...bottomUsage(usage, now) };
 }
