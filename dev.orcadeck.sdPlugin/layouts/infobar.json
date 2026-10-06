@@ -1,0 +1,38 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+	"id": "dev.orcadeck.infobar",
+	"controller": "Neo",
+	"items": [
+		{ "key": "c1", "type": "text", "rect": [6, 3, 52, 20], "alignment": "left", "font": { "size": 13, "weight": 700 } },
+		{ "key": "c2", "type": "text", "rect": [61, 3, 54, 20], "alignment": "left", "font": { "size": 13, "weight": 700 } },
+		{ "key": "c3", "type": "text", "rect": [118, 3, 54, 20], "alignment": "left", "font": { "size": 13, "weight": 700 } },
+		{ "key": "c4", "type": "text", "rect": [175, 3, 51, 20], "alignment": "left", "font": { "size": 13, "weight": 700 } },
+		{
+			"key": "title",
+			"type": "text",
+			"rect": [6, 2, 220, 22],
+			"zOrder": 1,
+			"enabled": false,
+			"alignment": "left",
+			"font": { "size": 15, "weight": 700 },
+			"color": "#FFFFFF"
+		},
+
+		{ "key": "u1l", "type": "text", "rect": [6, 28, 20, 18], "alignment": "left", "font": { "size": 12, "weight": 600 }, "color": "#FFFFFF", "value": "5h" },
+		{ "key": "u1b", "type": "bar", "rect": [26, 33, 58, 8], "value": 0, "range": { "min": 0, "max": 100 }, "bar_bg_c": "#4A4F5C", "bar_fill_c": "#2BD576", "border_w": 0 },
+		{ "key": "u1p", "type": "text", "rect": [86, 28, 34, 18], "alignment": "left", "font": { "size": 12, "weight": 700 } },
+		{ "key": "u2l", "type": "text", "rect": [122, 28, 20, 18], "alignment": "left", "font": { "size": 12, "weight": 600 }, "color": "#FFFFFF", "value": "7d" },
+		{ "key": "u2b", "type": "bar", "rect": [142, 33, 50, 8], "value": 0, "range": { "min": 0, "max": 100 }, "bar_bg_c": "#4A4F5C", "bar_fill_c": "#2BD576", "border_w": 0 },
+		{ "key": "u2p", "type": "text", "rect": [194, 28, 34, 18], "alignment": "left", "font": { "size": 12, "weight": 700 } },
+		{
+			"key": "detail",
+			"type": "text",
+			"rect": [6, 27, 220, 20],
+			"zOrder": 1,
+			"enabled": false,
+			"alignment": "left",
+			"font": { "size": 13, "weight": 500 },
+			"color": "#FFFFFF"
+		}
+	]
+}

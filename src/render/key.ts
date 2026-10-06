@@ -1,0 +1,117 @@
+import type { Connection, SlotState } from "../orca/store.ts";
+import { BG, breathe, FONT, marquee, MUTED, STATUS_STYLE } from "./theme.ts";
+
+const SIZE = 144;
+const BORDER = 14;
+/** Characters that fit on one line at the given font size inside the border (bold sans ≈ 0.6em/char). */
+const fit = (fontSize: number) => Math.floor((SIZE - 2 * BORDER - 8) / (fontSize * 0.6));
+
+export type KeyFrame = {
+	connection: Connection;
+	slot: SlotState;
+	now: number;
+	/** 0..1 while the key is held down, null otherwise. */
+	hold: number | null;
+};
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function text(x: number, y: number, size: number, fill: string, value: string, weight = 700) {
+	return `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="middle">${esc(value)}</text>`;
+}
+
+function frame(color: string, opacity: number, body: string) {
+	const inset = BORDER / 2;
+	return (
+		`<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">` +
+		`<rect width="${SIZE}" height="${SIZE}" fill="${BG}"/>` +
+		`<rect x="${inset}" y="${inset}" width="${SIZE - BORDER}" height="${SIZE - BORDER}" rx="22" fill="none" stroke="${color}" stroke-width="${BORDER}" stroke-opacity="${opacity}"/>` +
+		body +
+		`</svg>`
+	);
+}
+
+/** Greedy word wrap on `-`, `_`, `/` and spaces; returns null when it doesn't fit in `maxLines`. */
+export function wrap(name: string, perLine: number, maxLines: number): string[] | null {
+	const words = name.split(/(?<=[-_/ ])/);
+	const lines: string[] = [];
+	let line = "";
+	for (const word of words) {
+		if (word.length > perLine) return null;
+		if ((line + word).trimEnd().length <= perLine) line += word;
+		else {
+			lines.push(line.trimEnd());
+			line = word;
+		}
+	}
+	if (line) lines.push(line.trimEnd());
+	return lines.length <= maxLines ? lines : null;
+}
+
+function nameBlock(name: string, now: number): string {
+	const size = 19;
+	const perLine = fit(size);
+	const lines = wrap(name, perLine, 2);
+	if (lines?.length === 1) return text(72, 68, size, "#FFFFFF", lines[0]);
+	if (lines) return text(72, 56, size, "#FFFFFF", lines[0]) + text(72, 81, size, "#FFFFFF", lines[1]);
+	return text(72, 68, size, "#FFFFFF", marquee(name, perLine, now, 160, 8));
+}
+
+function holdOverlay(progress: number, label: string): string {
+	const w = SIZE - 2 * BORDER - 12;
+	return (
+		`<rect x="${BORDER}" y="${BORDER}" width="${SIZE - 2 * BORDER}" height="${SIZE - 2 * BORDER}" rx="10" fill="#000"/>` +
+		text(72, 66, 40, "#FFFFFF", "↻", 400) +
+		text(72, 92, 15, "#FFFFFF", label) +
+		`<rect x="${BORDER + 6}" y="104" width="${w}" height="8" rx="4" fill="#333845"/>` +
+		`<rect x="${BORDER + 6}" y="104" width="${Math.round(w * Math.min(1, progress))}" height="8" rx="4" fill="#FFFFFF"/>`
+	);
+}
+
+export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
+	if (connection === "no-cli") {
+		return frame(STATUS_STYLE.error.color, 1, text(72, 60, 22, "#FFF", "ORCA") + text(72, 86, 14, MUTED, "CLI not found"));
+	}
+	if (connection === "offline" || connection === "starting") {
+		const label = connection === "starting" ? "connecting…" : "offline";
+		return frame(
+			STATUS_STYLE.idle.color,
+			1,
+			text(72, 58, 22, "#FFF", "ORCA") + text(72, 82, 14, MUTED, label) + (connection === "offline" ? text(72, 104, 12, MUTED, "press to open") : ""),
+		);
+	}
+
+	const pending = slot.pending;
+	if (pending?.kind === "creating" || pending?.kind === "removing") {
+		const label = pending.kind === "creating" ? "STARTING" : "REMOVING";
+		const dots = ".".repeat(Math.floor(now / 350) % 4);
+		return frame("#FFFFFF", breathe(now, 900), text(72, 66, 17, "#FFF", label) + text(72, 88, 17, "#FFF", dots || " "));
+	}
+	if (pending?.kind === "dirty") {
+		return frame(
+			STATUS_STYLE.error.color,
+			breathe(now, 700),
+			text(72, 50, 15, "#FFF", "UNCOMMITTED") + text(72, 70, 15, "#FFF", "CHANGES") + text(72, 96, 12, MUTED, "hold again") + text(72, 112, 12, MUTED, "to discard"),
+		);
+	}
+	if (pending?.kind === "error") {
+		return frame(STATUS_STYLE.error.color, 1, text(72, 58, 18, "#FFF", "FAILED") + text(72, 84, 12, MUTED, marquee(pending.message, 14, now, 180)));
+	}
+
+	if (slot.kind === "empty") {
+		const body = text(72, 96, 84, "#6B7280", "+", 300);
+		return frame("#2A2E38", 1, hold !== null && hold > 0.15 ? body + holdOverlay(hold, "NEW TASK") : body);
+	}
+
+	const { view } = slot;
+	const style = STATUS_STYLE[view.status];
+	// "done" only breathes until it has been looked at in Orca.
+	const period = view.status === "done" && !view.unread ? null : style.breatheMs;
+	let body = nameBlock(view.name, now) + text(72, 112, 18, style.color, style.label);
+	if (hold !== null && hold > 0.15) body += holdOverlay(hold, "REPLACE");
+	return frame(style.color, breathe(now, period), body);
+}
+
+export function toDataUrl(svg: string): string {
+	return `data:image/svg+xml;charset=utf8,${encodeURIComponent(svg)}`;
+}

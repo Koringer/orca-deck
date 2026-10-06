@@ -1,0 +1,63 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+	"Name": "Orca Deck",
+	"Version": "0.1.0.0",
+	"Author": "Jérémie Paret",
+	"Description": "One key per Orca worktree with live agent status. Press to focus, hold to replace with a fresh worktree, + to start a new one. Neo infobar shows token usage and worktree details.",
+	"UUID": "dev.orcadeck",
+	"Icon": "imgs/plugin/icon",
+	"Category": "Orca Deck",
+	"CategoryIcon": "imgs/plugin/category",
+	"CodePath": "bin/plugin.js",
+	"PropertyInspectorPath": "ui/settings.html",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.6"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "13"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"Actions": [
+		{
+			"Name": "Worktree",
+			"UUID": "dev.orcadeck.worktree",
+			"Icon": "imgs/actions/worktree/icon",
+			"Tooltip": "Shows the Orca worktree assigned to this key. Press: focus. Hold: replace with a new worktree. Empty (+): new worktree.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/worktree/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Orca Infobar",
+			"UUID": "dev.orcadeck.infobar",
+			"Icon": "imgs/actions/infobar/icon",
+			"Tooltip": "Stream Deck Neo infobar: worktree counters, token usage, details of the last pressed worktree.",
+			"Controllers": [
+				"Neo"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/infobar/icon"
+				}
+			]
+		}
+	]
+}

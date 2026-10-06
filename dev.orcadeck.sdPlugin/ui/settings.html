@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
+	</head>
+	<body>
+		<sdpi-item label="Neo page">
+			<sdpi-range setting="page" min="1" max="5" step="1" default="1" showlabels></sdpi-range>
+		</sdpi-item>
+
+		<sdpi-heading>Shared by all keys</sdpi-heading>
+		<sdpi-item label="New agent">
+			<sdpi-select setting="agent" global default="claude">
+				<option value="claude">Claude Code</option>
+				<option value="codex">Codex</option>
+				<option value="opencode">OpenCode</option>
+				<option value="gemini">Gemini</option>
+				<option value="pi">Pi</option>
+			</sdpi-select>
+		</sdpi-item>
+		<sdpi-item label="Repo for +">
+			<sdpi-textfield setting="defaultRepo" global placeholder="auto (last used) · name:my-repo"></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="Hold (ms)">
+			<sdpi-range setting="holdMs" global min="400" max="2000" step="100" default="700" showlabels></sdpi-range>
+		</sdpi-item>
+		<sdpi-item label="Main checkout">
+			<sdpi-checkbox setting="includeMain" global label="Show the repo's main worktree"></sdpi-checkbox>
+		</sdpi-item>
+		<sdpi-item label="Orca CLI">
+			<sdpi-textfield setting="orcaPath" global placeholder="auto-detected"></sdpi-textfield>
+		</sdpi-item>
+	</body>
+</html>
