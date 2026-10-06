@@ -51,17 +51,23 @@ export function resolveOrcaBinary(override?: string): string | null {
 	return appCandidates.find((c) => existsSync(c)) ?? null;
 }
 
+const READ_ONLY = new Set(["worktree ps", "terminal list", "account list", "repo list"]);
+
 export class OrcaCli {
 	private readonly getBinary: () => string | null;
+	private readonly onCommand: (args: string[]) => void;
 
-	constructor(getBinary: () => string | null) {
+	/** `onCommand` is told about every command that changes something in Orca (not the polling reads). */
+	constructor(getBinary: () => string | null, onCommand: (args: string[]) => void = () => {}) {
 		this.getBinary = getBinary;
+		this.onCommand = onCommand;
 	}
 
 	/** Runs `orca <args> --json` and returns `result`, throwing {@link OrcaError} on failure. */
 	run<T = unknown>(args: string[], timeoutMs = 15_000): Promise<T> {
 		const bin = this.getBinary();
 		if (!bin) return Promise.reject(new OrcaError("cli_not_found", "Orca CLI not found"));
+		if (!READ_ONLY.has(args.slice(0, 2).join(" "))) this.onCommand(args);
 
 		return new Promise((resolve, reject) => {
 			execFile(

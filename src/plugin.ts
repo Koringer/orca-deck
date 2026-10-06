@@ -20,7 +20,7 @@ const store = new OrcaStore(
 			logger.info(`orca CLI: ${binary ?? "not found"}`);
 		}
 		return binary;
-	}),
+	}, (args) => logger.info(`orca ${args.join(" ")}`)),
 	(s) => void streamDeck.settings.setGlobalSettings(s),
 	(msg) => logger.warn(msg),
 );
