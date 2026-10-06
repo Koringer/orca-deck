@@ -21,7 +21,7 @@ function text(x: number, y: number, size: number, fill: string, value: string, w
 }
 
 /** Thinnest border while breathing. */
-const MIN_BORDER = 2;
+const MIN_BORDER = 4;
 /** Corner radius of the border's outer edge, kept constant while its width changes. */
 const OUTER_RADIUS = 29;
 

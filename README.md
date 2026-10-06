@@ -11,7 +11,7 @@ A Stream Deck plugin (built for the **Stream Deck Neo**): one key per [Orca](htt
 
 The deck never deletes or creates worktrees by itself: it shows a selection of your Orca worktrees and opens Orca's dialog to create new ones (`+`, long press). A worktree taken off the deck comes back as soon as its agent changes state.
 
-**Thick border = status** (input, error and working "breathe": the border swells from thin to full width and back; the others are static):
+**Thick border = status** (input, error and working "breathe": the border swells from 4 to 14 (of 144) and back and back; the others are static):
 🟠 working · 🟡 background (pure yellow: turn over, a background task it started is still running, Orca's "Monitoring background tasks") · 🔵 input (only when the agent actually needs you: a question, a permission, a plan to approve) · 🟢 done · 🔴 error · 🟣 review · ⚫ idle (grey)
 
 **Key name**: the agent's conversation title (e.g. "Fix login redirect"), on up to 3 lines; the font shrinks instead of scrolling. Falls back to a name you set in Orca, then the branch Orca auto-renamed from the work, then the generated name.

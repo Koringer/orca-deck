@@ -1,6 +1,6 @@
 {
   "name": "orca-deck",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "private": true,
   "description": "Stream Deck Neo plugin: one key per Orca worktree with live agent status",
   "type": "module",
