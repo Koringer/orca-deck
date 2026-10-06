@@ -4,7 +4,7 @@ export const STATUS_STYLE: Record<DeckStatus, { color: string; label: string; br
 	input: { color: "#2F9BFF", label: "INPUT", breatheMs: 1100 },
 	error: { color: "#FF4D4F", label: "ERROR", breatheMs: 1500 },
 	working: { color: "#FFB020", label: "WORKING", breatheMs: 2400 },
-	background: { color: "#FFFFFF", label: "BACKGROUND", breatheMs: 2800 },
+	background: { color: "#FFE600", label: "BACKGROUND", breatheMs: 2800 },
 	done: { color: "#2BD576", label: "DONE", breatheMs: 3200 },
 	review: { color: "#A970FF", label: "REVIEW", breatheMs: 3600 },
 	idle: { color: "#5A5F6B", label: "IDLE", breatheMs: null },
