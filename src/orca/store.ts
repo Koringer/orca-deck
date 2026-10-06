@@ -60,6 +60,8 @@ export class OrcaStore {
 	private readonly slotMap = new Map<number, string>();
 	private readonly pending = new Map<number, SlotPending>();
 	private readonly visibleSlots = new Set<number>();
+	/** Worktree ids seen in a previous poll; anything else just appeared in Orca. */
+	private known: Set<string> | null = null;
 	private pollTimer: NodeJS.Timeout | null = null;
 	private polling = false;
 
@@ -141,14 +143,40 @@ export class OrcaStore {
 		const free = [...this.visibleSlots]
 			.filter((s) => !this.slotMap.has(s) && !this.pending.has(s))
 			.sort((a, b) => a - b);
-		for (const view of this.views) {
-			if (free.length === 0) break;
-			if (assigned.has(view.id)) continue;
-			this.slotMap.set(free.shift()!, view.id);
+		// Busy worktrees first, then the most recently created.
+		const waiting = this.views
+			.filter((v) => !assigned.has(v.id))
+			.sort((a, b) => Number(a.status === "idle") - Number(b.status === "idle") || b.createdAt - a.createdAt);
+
+		const known = this.known;
+		this.known = ids;
+		for (const view of waiting) {
+			let slot = free.shift();
+			if (slot === undefined) {
+				// Deck full: take the key of the least recently active idle worktree.
+				// Only a new or busy worktree may displace an idle one, so displaced worktrees don't bounce
+				// between keys. On the first poll after a start, nothing counts as new.
+				const isNew = known !== null && !known.has(view.id);
+				slot = isNew || view.status !== "idle" ? this.idleVictim(view) : undefined;
+				if (slot === undefined) continue;
+			}
+			this.slotMap.set(slot, view.id);
 			changed = true;
 		}
 
 		if (changed) this.save();
+	}
+
+	private idleVictim(candidate: WorktreeView): number | undefined {
+		const byId = new Map(this.views.map((v) => [v.id, v]));
+		let victim: { slot: number; view: WorktreeView } | undefined;
+		for (const slot of this.visibleSlots) {
+			if (this.pending.has(slot)) continue;
+			const view = byId.get(this.slotMap.get(slot) ?? "");
+			if (!view || view.status !== "idle" || view.id === candidate.id) continue;
+			if (!victim || view.lastActivityAt < victim.view.lastActivityAt) victim = { slot, view };
+		}
+		return victim?.slot;
 	}
 
 	private save() {

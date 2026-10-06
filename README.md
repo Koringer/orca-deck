@@ -28,6 +28,7 @@ Il faut **l'app Stream Deck ≥ 7.6** (Mac ou Windows) et **Orca** installé.
 3. (Optionnel) réglages dans l'inspecteur : agent (`claude` par défaut), repo pour `+`, durée d'appui long, chemin du CLI.
 
 Le CLI `orca` est détecté automatiquement (PATH, `/Applications/Orca.app`, `%LOCALAPPDATA%\Programs\Orca`).
+Deck plein : un nouveau worktree (ou un worktree qui se remet au travail) prend la touche du worktree Idle le moins récemment actif ; celui-ci reste dans Orca et récupère une touche dès qu'une se libère. S'il n'y a aucun Idle, il attend. L'infobar affiche `+N` pour les worktrees sans touche.
 Pour une 2ᵉ page sur le Neo, mettre `Neo page = 2` sur ses touches : elles prennent les worktrees 9 à 16.
 
 ## Développement

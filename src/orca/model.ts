@@ -48,6 +48,8 @@ export type WorktreeView = {
 	activity: string;
 	isMain: boolean;
 	isArchived: boolean;
+	createdAt: number;
+	lastActivityAt: number;
 };
 
 const STATUS_PRIORITY: DeckStatus[] = ["input", "error", "working", "done", "review", "idle"];
@@ -146,6 +148,8 @@ export function toView(row: OrcaPsRow, agentTitle = ""): WorktreeView {
 		activity: activityOf(lead),
 		isMain: !!row.isMainWorktree,
 		isArchived: !!row.isArchived,
+		createdAt: row.createdAt ?? 0,
+		lastActivityAt: Math.max(row.lastActivityAt ?? 0, ...agents.map((a) => a.updatedAt ?? a.stateStartedAt ?? 0)),
 	};
 }
 

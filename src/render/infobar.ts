@@ -29,9 +29,10 @@ type Feedback = Record<string, Item>;
 const off = (keys: string[]): Feedback => Object.fromEntries(keys.map((k) => [k, { enabled: false }]));
 
 /** Top line: either the status counters or a free text title. */
-function topCounts(views: WorktreeView[]): Feedback {
+function topCounts(views: WorktreeView[], hidden: number): Feedback {
 	return {
 		title: { enabled: false },
+		hid: { value: hidden ? `+${hidden}` : "", color: "#FFFFFF", enabled: hidden > 0 },
 		...Object.fromEntries(
 			COUNTS.map((c) => {
 				const n = views.filter((v) => c.status.includes(v.status)).length;
@@ -43,7 +44,7 @@ function topCounts(views: WorktreeView[]): Feedback {
 }
 
 function topTitle(value: string, color: string): Feedback {
-	return { title: { value, color, enabled: true }, ...off(COUNTS.map((c) => c.key)) };
+	return { title: { value, color, enabled: true }, ...off([...COUNTS.map((c) => c.key), "hid"]) };
 }
 
 function usageColor(pct: number) {
@@ -94,6 +95,6 @@ export function renderInfobar({ connection, views, hidden, focus, usage, now }: 
 			? topTitle(marquee(`${asking[0].name} needs you`, 24, now), STATUS_STYLE.input.color)
 			: asking.length > 1
 				? topTitle(`${asking.length} worktrees need you`, STATUS_STYLE.input.color)
-				: topCounts(views);
+				: topCounts(views, hidden);
 	return { ...top, ...bottomUsage(usage, views, hidden, now) };
 }
