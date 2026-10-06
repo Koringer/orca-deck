@@ -91,12 +91,11 @@ export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
 	}
 
 	const pending = slot.pending;
-	if (pending?.kind === "creating") {
-		const dots = ".".repeat(Math.floor(now / 350) % 4);
-		return frame("#FFFFFF", breathe(now, 900), text(72, 66, 17, "#FFF", "STARTING") + text(72, 88, 17, "#FFF", dots || " "));
+	if (pending?.kind === "awaiting") {
+		return frame("#FFFFFF", breathe(now, 1200), text(72, 58, 17, "#FFF", "NAME IT") + text(72, 80, 17, "#FFF", "IN ORCA") + text(72, 106, 13, MUTED, "waiting…", 500));
 	}
 	if (pending?.kind === "error") {
-		return frame(STATUS_STYLE.error.color, 1, text(72, 58, 18, "#FFF", "FAILED") + text(72, 84, 12, MUTED, marquee(pending.message, 14, now, 180)));
+		return frame(STATUS_STYLE.error.color, 1, text(72, 58, 18, "#FFF", "FAILED") + text(72, 86, 14, "#FFF", marquee(pending.message, 12, now, 180)));
 	}
 
 	if (slot.kind === "empty") {

@@ -93,7 +93,7 @@ function shortBranch(branch: string): string {
 	return clean.split("/").pop() || clean;
 }
 
-/** Names given by the deck's "+" key (see store.taskName). */
+/** Names given by the "+" key of Orca Deck ≤ 0.1.7 (`task-MMDD-HHMMSS`). */
 const DECK_NAME = /^task-\d{4}-\d{6}$/;
 
 /** Longest name shown on a key; longer names are cut with "…". */

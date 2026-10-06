@@ -116,7 +116,7 @@ test("full deck: a just-created worktree (agent not started yet) still gets a ke
 	assert.deepEqual(shown.sort(), ["1", "3"]);
 });
 
-test("long press takes the worktree off the deck without deleting it, and starts a new one on the key", async () => {
+test("long press opens Orca's create dialog; the new worktree takes the key, the old one leaves the deck (not deleted)", async () => {
 	const old: OrcaPsRow = { ...row("done", 100), createdAt: 1 };
 	let rows: OrcaPsRow[] = [old];
 	const { cli, calls } = fakeOrca(() => rows);
@@ -124,19 +124,58 @@ test("long press takes the worktree off the deck without deleting it, and starts
 	store.registerSlot(0);
 	await store.refresh();
 
-	rows = [old, { ...row("working", 500), worktreeId: "r::/w/new", path: "/w/new", createdAt: 2 }];
 	await store.replaceSlot(0);
-	assert.ok(!calls.some((c) => c[0] === "worktree" && c[1] === "rm"), "never deletes in Orca");
-	assert.ok(calls.some((c) => c[0] === "worktree" && c[1] === "create" && c.includes("id:r")));
+	assert.ok(calls.some((c) => c.join(" ").startsWith("computer hotkey") && c.includes("CmdOrCtrl+N")), "opens Orca's dialog");
+	assert.ok(!calls.some((c) => c[0] === "worktree" && (c[1] === "rm" || c[1] === "create")), "neither deletes nor creates by itself");
+	assert.equal(store.slot(0).pending?.kind, "awaiting");
+
+	// The user names the task in Orca; the new worktree shows up on the next poll.
+	rows = [old, { ...row("working", 500), worktreeId: "r::/w/new", path: "/w/new", createdAt: 2 }];
+	await store.refresh();
 	const s = store.slot(0);
 	assert.equal(s.kind === "worktree" ? s.view.id : null, "r::/w/new");
-	assert.equal(store.hiddenCount(), 0, "a dismissed worktree isn't counted as waiting for a key");
+	assert.equal(s.pending, undefined);
+	assert.equal(store.hiddenCount(), 0, "the replaced worktree is off the deck, not waiting for a key");
 
-	// It comes back when its agent changes state (here: a key frees up).
+	// It comes back when its agent changes state.
 	rows = [{ ...old, agents: [{ state: "waiting", agentType: "claude", stateStartedAt: 900 }] }];
 	await store.refresh();
 	const back = store.slot(0);
 	assert.equal(back.kind === "worktree" ? back.view.id : null, "r::/w/a");
+});
+
+test("+ waits for the worktree created in Orca's dialog, even if another key is free", async () => {
+	let rows: OrcaPsRow[] = [];
+	const { cli } = fakeOrca(() => rows);
+	const store = new OrcaStore(cli, () => {});
+	for (let i = 0; i < 3; i++) store.registerSlot(i);
+	await store.refresh();
+	await store.createInSlot(2);
+	rows = [{ ...row("idle", 1), createdAt: 5 }];
+	await store.refresh();
+	const s = store.slot(2);
+	assert.equal(s.kind === "worktree" ? s.view.id : null, "r::/w/a");
+	assert.equal(store.slot(0).kind, "empty");
+});
+
+test("missing Accessibility permission opens the setting and shows an error on the key", async () => {
+	const calls: string[][] = [];
+	const cli = {
+		run: async <T,>(args: string[]): Promise<T> => {
+			calls.push(args);
+			if (args[1] === "hotkey") {
+				const { OrcaError } = await import("../src/orca/cli.ts");
+				throw new OrcaError("permission_denied", "Accessibility permission is required");
+			}
+			return { worktrees: [], terminals: [] } as T;
+		},
+	};
+	const store = new OrcaStore(cli, () => {});
+	store.registerSlot(0);
+	await store.refresh();
+	await store.createInSlot(0);
+	assert.ok(calls.some((c) => c.join(" ") === "computer permissions --id accessibility"));
+	assert.equal(store.slot(0).pending?.kind, "error");
 });
 
 test("a failing poll is logged once, not on every poll", async () => {

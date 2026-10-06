@@ -5,11 +5,11 @@ A Stream Deck plugin (built for the **Stream Deck Neo**): one key per [Orca](htt
 | Gesture | Effect |
 |---|---|
 | Press a worktree | Brings its agent terminal to the front in Orca (starts the agent if nothing is running). A **Done** worktree turns **Idle** once pressed. |
-| Hold a worktree (0.7 s) | **Takes it off the deck** (it stays in Orca) and starts a new worktree + agent in the same repo, on the same key |
-| Press `+` | New worktree + agent |
+| Press `+` | Opens Orca's **Create worktree** dialog (⌘N) so you name the task; the worktree you create lands on this key |
+| Hold a worktree (0.7 s) | Same dialog; once the new worktree exists it takes this key and the old one **leaves the deck** (it stays in Orca). Cancel the dialog and nothing changes. |
 | Orca closed | Any key launches Orca |
 
-The deck never deletes worktrees: it shows a selection of your Orca worktrees and can create new ones (`+`, long press). A worktree taken off the deck comes back as soon as its agent changes state.
+The deck never deletes or creates worktrees by itself: it shows a selection of your Orca worktrees and opens Orca's dialog to create new ones (`+`, long press). A worktree taken off the deck comes back as soon as its agent changes state.
 
 **Thick border = status** (it "breathes", except when idle):
 🟡 working · 🔵 input (the agent is waiting for you) · 🟢 done (breathes until seen) · 🔴 error · 🟣 review · ⚪ idle
@@ -29,7 +29,8 @@ Requires the **Stream Deck app ≥ 7.6** (macOS or Windows) and **Orca**.
 
 1. Download `dev.orcadeck.streamDeckPlugin` from [Releases](https://github.com/Koringer/orca-deck/releases) and double-click it.
 2. The plugin installs and activates the **Orca Deck** profile on the Neo (8 Worktree keys + infobar). Nothing to drag.
-3. (Optional) settings in the property inspector: agent (`claude` by default), repo for `+`, long-press duration, CLI path.
+3. The first time you press `+`, macOS asks to grant **Accessibility** to *Orca Computer Use* (Orca's helper that sends ⌘N to open its dialog). Allow it, then press again.
+4. (Optional) settings in the property inspector: agent started when pressing a worktree with no terminal (`claude` by default), long-press duration, CLI path.
 
 The `orca` CLI is detected automatically (PATH, `/Applications/Orca.app`, `%LOCALAPPDATA%\Programs\Orca`).
 For a second Neo page, set `Neo page = 2` on its keys: they show worktrees 9 to 16.
@@ -50,7 +51,7 @@ npm run pack       # → dist/dev.orcadeck.streamDeckPlugin
 ```
 
 Data: `orca worktree ps --json` and `orca terminal list --json` (every 1.5 s), `orca account list --json` (rate limits, every 60 s).
-Actions: `orca terminal list|switch|create`, `orca worktree create --agent … --activate`.
+Actions: `orca terminal list|switch|create`, `orca computer hotkey --key CmdOrCtrl+N` (opens Orca's Create worktree dialog).
 
 ## License
 

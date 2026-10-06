@@ -77,7 +77,7 @@ test("renders every key state as valid-looking SVG", () => {
 		renderKey({ connection: "ok", slot: { kind: "worktree", view }, now: 200_000, hold: null }),
 		renderKey({ connection: "ok", slot: { kind: "worktree", view }, now: 1, hold: 0.5 }),
 		renderKey({ connection: "ok", slot: { kind: "empty" }, now: 1, hold: null }),
-		renderKey({ connection: "ok", slot: { kind: "empty", pending: { kind: "creating", at: 0 } }, now: 1, hold: null }),
+		renderKey({ connection: "ok", slot: { kind: "empty", pending: { kind: "awaiting", at: 0, until: 9e15 } }, now: 1, hold: null }),
 		renderKey({ connection: "offline", slot: { kind: "empty" }, now: 1, hold: null }),
 	];
 	for (const svg of frames) assert.match(svg, /^<svg[\s\S]*<\/svg>$/);

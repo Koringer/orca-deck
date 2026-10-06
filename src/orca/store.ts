@@ -6,9 +6,7 @@ import { toView, type OrcaPsRow, type WorktreeView } from "./model.ts";
 export type GlobalSettings = {
 	/** Absolute path to the `orca` CLI; auto-detected when empty. */
 	orcaPath?: string;
-	/** Repo selector for the "+" key, e.g. `name:my-repo` or `id:<repoId>`. Defaults to the most recent worktree's repo. */
-	defaultRepo?: string;
-	/** Agent launched in new worktrees (`claude`, `codex`, ...). */
+	/** Agent started when pressing a worktree with no terminal (`claude`, `codex`, ...). */
 	agent?: string;
 	/** Long-press duration in ms. */
 	holdMs?: number;
@@ -24,7 +22,8 @@ export type GlobalSettings = {
 };
 
 export type SlotPending =
-	| { kind: "creating"; at: number }
+	/** Orca's "Create worktree" dialog is open; the next new worktree goes on this key. */
+	| { kind: "awaiting"; at: number; until: number; replaces?: string }
 	| { kind: "error"; at: number; until: number; message: string };
 
 export type Connection = "ok" | "offline" | "no-cli" | "starting";
@@ -40,6 +39,9 @@ type RateLimitWindow = { usedPercent?: number; resetsAt?: number };
 type RateLimits = Record<string, { session?: RateLimitWindow | null; weekly?: RateLimitWindow | null; status?: string } | undefined>;
 
 type TerminalRow = { worktreeId?: string; title?: string | null; agentIdentity?: string | null; lastOutputAt?: number | null };
+
+/** How long a key waits for the worktree created in Orca's dialog. */
+const AWAIT_MS = 3 * 60_000;
 
 const USAGE_POLL_MS = 60_000;
 
@@ -131,7 +133,7 @@ export class OrcaStore {
 		let changed = false;
 
 		for (const [slot, id] of this.slotMap) {
-			if (!ids.has(id) && this.pending.get(slot)?.kind !== "creating") {
+			if (!ids.has(id)) {
 				this.slotMap.delete(slot);
 				changed = true;
 			}
@@ -148,6 +150,26 @@ export class OrcaStore {
 
 		const known = this.known;
 		this.known = ids;
+
+		// Worktrees that just appeared go to keys waiting on Orca's "Create worktree" dialog.
+		const fresh = known ? waiting.filter((v) => !known.has(v.id)).sort((a, b) => a.createdAt - b.createdAt) : [];
+		const awaiting = [...this.pending]
+			.filter(([slot, p]) => p.kind === "awaiting" && this.livePending(slot))
+			.sort(([, a], [, b]) => a.at - b.at);
+		for (const [slot, p] of awaiting) {
+			const view = fresh.shift();
+			if (!view) break;
+			if (p.kind === "awaiting" && p.replaces) {
+				const old = this.views.find((v) => v.id === p.replaces);
+				if (old) this.settings = { ...this.settings, dismissed: { ...this.settings.dismissed, [old.id]: signature(old) } };
+			}
+			this.pending.delete(slot);
+			this.slotMap.set(slot, view.id);
+			this.focus = { id: view.id, at: Date.now() };
+			waiting.splice(waiting.indexOf(view), 1);
+			changed = true;
+		}
+
 		for (const view of waiting) {
 			let slot = free.shift();
 			if (slot === undefined) {
@@ -338,29 +360,20 @@ export class OrcaStore {
 		bringOrcaToFront();
 	}
 
-	/** Short press on "+": new worktree with a fresh agent. */
+	/** Press on "+": opens Orca's "Create worktree" dialog; the worktree created there lands on this key. */
 	async createInSlot(slot: number) {
-		const repo = this.settings.defaultRepo?.trim() || (await this.guessRepo());
-		if (!repo) {
-			this.fail(slot, "No repo in Orca");
-			return;
-		}
-		await this.create(slot, repo);
+		await this.openCreateDialog(slot);
 	}
 
 	/**
-	 * Long press on a worktree: take it off the deck (it stays in Orca) and start a new worktree with
-	 * a fresh agent, same repo, on this key. The deck never deletes worktrees.
+	 * Long press on a worktree: opens Orca's "Create worktree" dialog. Once the new worktree exists it
+	 * takes this key and the old one leaves the deck (it stays in Orca). The deck never deletes worktrees.
 	 */
 	async replaceSlot(slot: number) {
 		const state = this.slot(slot);
 		if (state.kind !== "worktree") return this.createInSlot(slot);
 		if (state.pending) return;
-
-		const { view } = state;
-		this.settings = { ...this.settings, dismissed: { ...this.settings.dismissed, [view.id]: signature(view) } };
-		this.slotMap.delete(slot);
-		await this.create(slot, `id:${view.repoId}`);
+		await this.openCreateDialog(slot, state.view.id);
 	}
 
 	async openOrca() {
@@ -368,52 +381,31 @@ export class OrcaStore {
 		await this.refresh();
 	}
 
-	private async create(slot: number, repoSelector: string) {
-		this.pending.set(slot, { kind: "creating", at: Date.now() });
-		this.save();
+	private async openCreateDialog(slot: number, replaces?: string) {
+		const now = Date.now();
+		this.pending.set(slot, { kind: "awaiting", at: now, until: now + AWAIT_MS, ...(replaces ? { replaces } : {}) });
 		try {
-			const result = await this.cli.run<{ worktree: { id: string } }>(
-				[
-					"worktree",
-					"create",
-					"--repo",
-					repoSelector,
-					"--name",
-					taskName(),
-					"--agent",
-					this.config.agent,
-					"--no-parent",
-					"--activate",
-				],
-				120_000,
+			// Orca's own shortcut for "Create worktree" (Cmd+N / Ctrl+N), sent through Orca's computer-use helper.
+			await this.cli.run(
+				["computer", "hotkey", "--app", process.platform === "darwin" ? "com.stablyai.orca" : "Orca", "--key", "CmdOrCtrl+N", "--restore-window", "--no-screenshot"],
+				20_000,
 			);
-			this.slotMap.set(slot, result.worktree.id);
-			this.pending.delete(slot);
-			this.focus = { id: result.worktree.id, at: Date.now() };
-			this.save();
-			bringOrcaToFront();
 		} catch (e) {
-			this.fail(slot, e instanceof Error ? e.message : String(e));
+			this.pending.delete(slot);
+			if (e instanceof OrcaError && e.code === "permission_denied") {
+				// Opens the system settings where the user grants Accessibility to "Orca Computer Use".
+				void this.cli.run(["computer", "permissions", "--id", "accessibility"]).catch(() => {});
+				this.fail(slot, "Allow Accessibility for Orca Computer Use, then press again");
+			} else {
+				this.fail(slot, e instanceof Error ? e.message : String(e));
+			}
 		}
-		await this.refresh();
 	}
 
 	private fail(slot: number, message: string) {
 		this.log(`slot ${slot}: ${message}`);
 		this.pending.set(slot, { kind: "error", at: Date.now(), until: Date.now() + 4000, message });
 	}
-
-	private async guessRepo(): Promise<string | null> {
-		const recent = [...this.views].sort((a, b) => (b.since ?? 0) - (a.since ?? 0))[0];
-		if (recent) return `id:${recent.repoId}`;
-		const { repos } = await this.cli.run<{ repos: { id: string }[] }>(["repo", "list"]);
-		return repos[0] ? `id:${repos[0].id}` : null;
-	}
-}
-
-function taskName(d = new Date()) {
-	const p = (n: number) => String(n).padStart(2, "0");
-	return `task-${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
 function bringOrcaToFront() {

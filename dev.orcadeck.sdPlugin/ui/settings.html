@@ -10,7 +10,7 @@
 		</sdpi-item>
 
 		<sdpi-heading>Shared by all keys</sdpi-heading>
-		<sdpi-item label="New agent">
+		<sdpi-item label="Agent">
 			<sdpi-select setting="agent" global default="claude">
 				<option value="claude">Claude Code</option>
 				<option value="codex">Codex</option>
@@ -18,9 +18,6 @@
 				<option value="gemini">Gemini</option>
 				<option value="pi">Pi</option>
 			</sdpi-select>
-		</sdpi-item>
-		<sdpi-item label="Repo for +">
-			<sdpi-textfield setting="defaultRepo" global placeholder="auto (last used) · name:my-repo"></sdpi-textfield>
 		</sdpi-item>
 		<sdpi-item label="Hold (ms)">
 			<sdpi-range setting="holdMs" global min="400" max="2000" step="100" default="700" showlabels></sdpi-range>
