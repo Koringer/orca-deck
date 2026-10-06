@@ -1,6 +1,8 @@
 /** Subset of an agent entry in `orca worktree ps --json` rows. */
 export type OrcaAgent = {
 	state?: string; // working | waiting | blocked | done | failed | interrupted | idle | ...
+	/** `monitoring`: the agent's turn is over, only background tasks it started are still running. */
+	workingMode?: string;
 	agentType?: string | null;
 	interrupted?: boolean;
 	stateStartedAt?: number;
@@ -25,6 +27,7 @@ export type OrcaPsRow = {
 	unread?: boolean;
 	liveTerminalCount?: number;
 	status?: string; // permission | working | done | active | inactive
+	workingMode?: string;
 	agents?: OrcaAgent[];
 	lastActivityAt?: number;
 	createdAt?: number;
@@ -64,9 +67,12 @@ function agentStatus(a: OrcaAgent): DeckStatus {
 			return "error";
 		case "interrupted":
 			return "error";
-		case "working":
+		// Orca's "Monitoring background tasks" (pulse icon): the agent ended its turn and is waiting for
+		// the user while a background task it started keeps running.
 		case "monitoring":
-			return "working";
+			return "input";
+		case "working":
+			return a.workingMode === "monitoring" ? "input" : "working";
 		case "done":
 			return a.interrupted ? "error" : "done";
 		default:
@@ -79,7 +85,7 @@ function rowStatus(row: OrcaPsRow): DeckStatus {
 		case "permission":
 			return "input";
 		case "working":
-			return "working";
+			return row.workingMode === "monitoring" ? "input" : "working";
 		case "done":
 			return "done";
 		default:

@@ -31,6 +31,12 @@ test("status priority: input beats working beats done", () => {
 	assert.equal(v.since, 9);
 });
 
+test("monitoring background tasks (turn over, waiting for the user) is input", () => {
+	assert.equal(toView(row({ agents: [{ state: "working", workingMode: "monitoring" }] })).status, "input");
+	assert.equal(toView(row({ status: "working", workingMode: "monitoring" })).status, "input");
+	assert.equal(toView(row({ agents: [{ state: "working" }] })).status, "working");
+});
+
 test("row status fallback and review", () => {
 	assert.equal(toView(row({ status: "working" })).status, "working");
 	assert.equal(toView(row({ status: "inactive", workspaceStatus: "in-review" })).status, "review");
