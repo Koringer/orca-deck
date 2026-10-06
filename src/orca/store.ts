@@ -1,5 +1,7 @@
 import { execFile } from "node:child_process";
 
+import { contextForWorktree, type ContextUsage } from "../claude/context.ts";
+import { ClaudeUsageError, fetchClaudeUsage, type Money } from "../claude/usage.ts";
 import { OrcaCli, OrcaError } from "./cli.ts";
 import { toView, type OrcaPsRow, type WorktreeView } from "./model.ts";
 
@@ -37,9 +39,14 @@ export type Usage = {
 	provider: string;
 	session: UsageWindow | null;
 	weekly: UsageWindow | null;
-	/** Why Orca has no usage for this account (e.g. "Codex not signed in"), when it has none. */
+	/** Monthly spend cap (organization plans): what `/usage` shows as e.g. "$36 of $100". */
+	monthly?: { usedPercent: number; used: Money; limit: Money } | null;
+	/** Why there is no usage for this account (e.g. "Codex not signed in"), when there is none. */
 	error?: string;
 };
+
+/** Context window of the agent in the worktree shown in Orca, when that worktree is on the deck. */
+export type ActiveContext = { worktreeId: string; name: string; context: ContextUsage };
 
 type RateLimitWindow = { usedPercent?: number; resetsAt?: number };
 type RateLimits = Record<
@@ -53,6 +60,8 @@ type TerminalRow = { worktreeId?: string; title?: string | null; agentIdentity?:
 const AWAIT_MS = 3 * 60_000;
 
 const USAGE_POLL_MS = 60_000;
+/** Anthropic's usage endpoint is rate limited (Orca polls it too), so it's asked at most every 5 minutes. */
+const CLAUDE_API_POLL_MS = 5 * 60_000;
 const HOOKS_POLL_MS = 5 * 60_000;
 
 type HooksStatus = { enabled?: boolean; statuses?: { agent: string; managedHooksPresent?: boolean }[] };
@@ -65,8 +74,12 @@ export class OrcaStore {
 	/** Rate-limit usage of the configured agent's account, from `orca account list`. */
 	usage: Usage | null = null;
 	private usageAt = 0;
+	private claudeApiAt = 0;
+	private claudeApiBlockedUntil = 0;
+	private claudeApiUsage: Usage | null = null;
 	/** Set when Orca's agent status hooks are missing: statuses then only update while the terminal is on screen. */
 	hooksIssue: string | null = null;
+	activeContext: ActiveContext | null = null;
 	private hooksAt = 0;
 	private hooksRepairTried = false;
 
@@ -264,6 +277,7 @@ export class OrcaStore {
 			this.pruneDismissed();
 			this.assignSlots();
 			if (Date.now() - this.usageAt > USAGE_POLL_MS) void this.refreshUsage();
+			void this.refreshActiveContext();
 			if (Date.now() - this.hooksAt > HOOKS_POLL_MS) void this.checkHooks();
 		} catch (e) {
 			const code = e instanceof OrcaError ? e.code : "unknown";
@@ -332,8 +346,30 @@ export class OrcaStore {
 		}
 	}
 
+	/** Claude usage straight from Anthropic (like `/usage`), falling back to what Orca reports. */
 	private async refreshUsage() {
 		this.usageAt = Date.now();
+		let apiError: string | null = null;
+		if (this.config.agent === "claude") {
+			const now = Date.now();
+			if (now - this.claudeApiAt >= CLAUDE_API_POLL_MS && now >= this.claudeApiBlockedUntil) {
+				this.claudeApiAt = now;
+				try {
+					const usage = await fetchClaudeUsage();
+					this.claudeApiUsage = usage.session || usage.weekly || usage.monthly ? { provider: "claude", ...usage } : null;
+					if (!this.claudeApiUsage) apiError = "Anthropic reports no limits for this account";
+				} catch (e) {
+					if (e instanceof ClaudeUsageError && e.retryAfterMs) this.claudeApiBlockedUntil = now + e.retryAfterMs;
+					else this.claudeApiUsage = null; // keep the last good value only through rate limiting
+					apiError = e instanceof Error ? e.message : String(e);
+				}
+			}
+			if (this.claudeApiUsage) {
+				this.usage = this.claudeApiUsage;
+				this.recovered("usage");
+				return;
+			}
+		}
 		try {
 			const { rateLimits } = await this.cli.run<{ rateLimits?: RateLimits }>(["account", "list"]);
 			this.recovered("account list");
@@ -343,13 +379,25 @@ export class OrcaStore {
 				typeof w?.usedPercent === "number" ? { usedPercent: w.usedPercent, resetsAt: w.resetsAt ?? null } : null;
 			const session = win(limits?.session);
 			const weekly = win(limits?.weekly);
-			const error = session || weekly ? undefined : limits?.error || limits?.status || "Orca reports no usage for this account";
+			const error = session || weekly ? undefined : apiError || limits?.error || limits?.status || "no usage for this account";
 			this.usage = { provider, session, weekly, ...(error ? { error } : {}) };
 			if (error) this.logOnce("usage", new Error(error));
 			else this.recovered("usage");
 		} catch (e) {
 			this.logOnce("account list", e);
 		}
+	}
+
+	/** Context of the Claude session in the worktree currently shown in Orca, if that worktree is on the deck. */
+	private async refreshActiveContext() {
+		const shown = new Set([...this.visibleSlots].map((s) => this.slotMap.get(s)));
+		const active = this.views.find((v) => v.isActive && shown.has(v.id) && (v.agent ?? "claude") === "claude");
+		if (!active) {
+			this.activeContext = null;
+			return;
+		}
+		const context = await contextForWorktree(active.path).catch(() => null);
+		this.activeContext = context ? { worktreeId: active.id, name: active.name, context } : null;
 	}
 
 	// ---------------------------------------------------------------- actions

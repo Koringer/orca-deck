@@ -17,8 +17,11 @@ The deck never deletes or creates worktrees by itself: it shows a selection of y
 **Key name**: the agent's conversation title (e.g. "Fix login redirect"), on up to 3 lines; the font shrinks instead of scrolling. Falls back to a name you set in Orca, then the branch Orca auto-renamed from the work, then the generated name.
 
 **Neo infobar**:
-- line 1: agent status counters `ask / work / done / idle`, plus `+N` worktrees without a key;
-- line 2: always token usage (5-hour and weekly gauges) for the Claude/Codex account managed by Orca, or why Orca has none.
+- line 1: when the worktree shown in Orca is on the deck, **its context window** (`ctx` gauge, % and tokens, like Claude Code's status line); otherwise the agent status counters `ask / work / done / idle`, plus `+N` worktrees without a key;
+- line 2: always **token usage**: 5-hour and weekly gauges, or the monthly spend cap (`mo` gauge + "$36 / $100") on organization plans.
+
+Usage is read like Claude Code's `/usage`: the plugin reads Claude Code's login token (macOS Keychain item "Claude Code-credentials", or `~/.claude/.credentials.json`) and asks Anthropic's usage endpoint, at most every 5 minutes. The token is only read and only sent to `api.anthropic.com`; it is never stored, refreshed or logged. The first time, macOS asks to allow access to that Keychain item. If it's unavailable, the plugin falls back to what Orca reports (`orca account list`).
+Context comes from the session's transcript (`~/.claude/projects/…/<session>.jsonl`, found through `~/.claude/sessions/`).
 
 **Instant statuses** rely on the agent status hooks Orca installs in each agent's config (e.g. `~/.claude/settings.json`); without them Orca can only read the terminal screen, so a question only turns the key blue once the terminal is displayed. The plugin checks them every 5 minutes, reinstalls them once (`orca agent hooks on`) if they're missing, and otherwise shows a warning in the infobar.
 

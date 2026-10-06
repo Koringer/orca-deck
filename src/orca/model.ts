@@ -25,6 +25,7 @@ export type OrcaPsRow = {
 	workspaceStatus?: string;
 	comment?: string;
 	unread?: boolean;
+	isActive?: boolean;
 	liveTerminalCount?: number;
 	status?: string; // permission | working | done | active | inactive
 	workingMode?: string;
@@ -39,6 +40,9 @@ export type WorktreeView = {
 	id: string;
 	repoId: string;
 	repo: string;
+	path: string;
+	/** The worktree currently shown in Orca. */
+	isActive: boolean;
 	name: string;
 	branch: string;
 	status: DeckStatus;
@@ -144,6 +148,8 @@ export function toView(row: OrcaPsRow, agentTitle = ""): WorktreeView {
 		id: row.worktreeId,
 		repoId: row.repoId,
 		repo: row.repo,
+		path: row.path,
+		isActive: !!row.isActive,
 		name: taskName(row, cleanTitle(agentTitle)),
 		branch: row.branch,
 		status,

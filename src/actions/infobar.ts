@@ -24,7 +24,7 @@ export class OrcaInfobar extends SingletonAction {
 	tick(now: number) {
 		if (this.bars.size === 0) return;
 		const { store } = this;
-		const feedback = renderInfobar({ connection: store.connection, views: store.views, hidden: store.hiddenCount(), usage: store.usage, hooksIssue: store.hooksIssue, now });
+		const feedback = renderInfobar({ connection: store.connection, views: store.views, hidden: store.hiddenCount(), usage: store.usage, hooksIssue: store.hooksIssue, activeContext: store.activeContext, now });
 		const serialized = JSON.stringify(feedback);
 		for (const bar of this.bars.values()) {
 			if (bar.last === serialized) continue;
