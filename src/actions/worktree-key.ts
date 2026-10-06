@@ -62,7 +62,7 @@ export class WorktreeKey extends SingletonAction<KeySettings> {
 
 		if (this.store.connection !== "ok") return this.run(inst, this.store.openOrca());
 		const slot = this.store.slot(inst.slot);
-		if (slot.pending && slot.pending.kind !== "dirty") return;
+		if (slot.pending) return;
 		this.run(inst, slot.kind === "empty" ? this.store.createInSlot(inst.slot) : this.store.focusWorktree(inst.slot));
 	}
 

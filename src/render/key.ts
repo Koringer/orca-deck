@@ -91,17 +91,9 @@ export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
 	}
 
 	const pending = slot.pending;
-	if (pending?.kind === "creating" || pending?.kind === "removing") {
-		const label = pending.kind === "creating" ? "STARTING" : "REMOVING";
+	if (pending?.kind === "creating") {
 		const dots = ".".repeat(Math.floor(now / 350) % 4);
-		return frame("#FFFFFF", breathe(now, 900), text(72, 66, 17, "#FFF", label) + text(72, 88, 17, "#FFF", dots || " "));
-	}
-	if (pending?.kind === "dirty") {
-		return frame(
-			STATUS_STYLE.error.color,
-			breathe(now, 700),
-			text(72, 50, 15, "#FFF", "UNCOMMITTED") + text(72, 70, 15, "#FFF", "CHANGES") + text(72, 96, 12, MUTED, "hold again") + text(72, 112, 12, MUTED, "to discard"),
-		);
+		return frame("#FFFFFF", breathe(now, 900), text(72, 66, 17, "#FFF", "STARTING") + text(72, 88, 17, "#FFF", dots || " "));
 	}
 	if (pending?.kind === "error") {
 		return frame(STATUS_STYLE.error.color, 1, text(72, 58, 18, "#FFF", "FAILED") + text(72, 84, 12, MUTED, marquee(pending.message, 14, now, 180)));
@@ -117,7 +109,7 @@ export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
 	// "done" only breathes until it has been looked at in Orca.
 	const period = view.status === "done" && !view.unread ? null : style.breatheMs;
 	let body = nameBlock(view.name, now) + text(72, 114, 17, style.color, style.label);
-	if (hold !== null && hold > 0.15) body += holdOverlay(hold, "REPLACE");
+	if (hold !== null && hold > 0.15) body += holdOverlay(hold, "NEW TASK");
 	return frame(style.color, breathe(now, period), body);
 }
 

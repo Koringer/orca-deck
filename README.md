@@ -5,11 +5,11 @@ Plugin Stream Deck (pensé pour le **Stream Deck Neo**) : une touche par worktre
 | Geste | Effet |
 |---|---|
 | Appui court sur un worktree | Ouvre son terminal d'agent dans Orca (lance l'agent s'il n'y a rien) |
-| Appui long (0,7 s) sur un worktree | **Remplace** le worktree : `worktree rm`, puis nouveau worktree dans le même repo + nouvel agent, sur la même touche |
+| Appui long (0,7 s) sur un worktree | Le **retire du deck** (il reste dans Orca) et lance un nouveau worktree + agent dans le même repo, sur la même touche |
 | Appui sur `+` | Nouveau worktree + agent |
 | Orca fermé | N'importe quelle touche lance Orca |
 
-S'il y a des changements non commités, l'appui long ne supprime rien : la touche affiche *UNCOMMITTED CHANGES*. Un second appui long dans les 6 s force la suppression (`--force`).
+Le deck ne supprime jamais de worktree : il affiche une sélection de ceux d'Orca et peut en créer (`+`, appui long). Un worktree retiré revient sur le deck dès que son agent change d'état.
 
 **Bordure épaisse = état** (elle "respire" sauf en idle) :
 🟡 working · 🔵 input (l'agent attend) · 🟢 done (respire tant que non lu) · 🔴 error · 🟣 review · ⚪ idle
@@ -43,4 +43,4 @@ npm run pack       # → dist/dev.orcadeck.streamDeckPlugin
 ```
 
 Données : `orca worktree ps --json` (toutes les 1,5 s) et `orca account list --json` (rate limits, toutes les 60 s).
-Actions : `orca terminal list|switch|create`, `orca worktree rm|create --agent … --activate`.
+Actions : `orca terminal list|switch|create`, `orca worktree create --agent … --activate`.

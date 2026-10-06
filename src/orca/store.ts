@@ -19,12 +19,12 @@ export type GlobalSettings = {
 	slots?: Record<string, string>;
 	/** worktree id → "done" state (its start time) the user already looked at; shown as idle. */
 	seen?: Record<string, number>;
+	/** worktree id → state signature when the user took it off the deck; it stays off until that changes. */
+	dismissed?: Record<string, string>;
 };
 
 export type SlotPending =
 	| { kind: "creating"; at: number }
-	| { kind: "removing"; at: number }
-	| { kind: "dirty"; at: number; until: number; message: string }
 	| { kind: "error"; at: number; until: number; message: string };
 
 export type Connection = "ok" | "offline" | "no-cli" | "starting";
@@ -44,8 +44,6 @@ type TerminalRow = { worktreeId?: string; title?: string | null; agentIdentity?:
 const USAGE_POLL_MS = 60_000;
 
 export const DEFAULTS = { agent: "claude", holdMs: 700, pollMs: 1500 } as const;
-
-const DIRTY_PATTERN = /uncommitted|dirty|modified|untracked|unmerged|local changes|--force/i;
 
 export class OrcaStore {
 	connection: Connection = "starting";
@@ -115,7 +113,7 @@ export class OrcaStore {
 	/** Worktrees that have no visible key. */
 	hiddenCount(): number {
 		const shown = new Set([...this.visibleSlots].map((s) => this.slotMap.get(s)));
-		return this.views.filter((v) => !shown.has(v.id)).length;
+		return this.views.filter((v) => !shown.has(v.id) && !this.isDismissed(v)).length;
 	}
 
 	private livePending(slot: number): SlotPending | undefined {
@@ -145,7 +143,7 @@ export class OrcaStore {
 			.sort((a, b) => a - b);
 		// Busy worktrees first, then the most recently created.
 		const waiting = this.views
-			.filter((v) => !assigned.has(v.id))
+			.filter((v) => !assigned.has(v.id) && !this.isDismissed(v))
 			.sort((a, b) => Number(a.status === "idle") - Number(b.status === "idle") || b.createdAt - a.createdAt);
 
 		const known = this.known;
@@ -165,6 +163,22 @@ export class OrcaStore {
 		}
 
 		if (changed) this.save();
+	}
+
+	/** Taken off the deck with a long press, and its agent hasn't changed state since. */
+	private isDismissed(view: WorktreeView): boolean {
+		return this.settings.dismissed?.[view.id] === signature(view);
+	}
+
+	/** Forgets dismissals of worktrees that changed state or no longer exist. */
+	private pruneDismissed() {
+		const dismissed = this.settings.dismissed;
+		if (!dismissed) return;
+		const live = Object.fromEntries(Object.entries(dismissed).filter(([id]) => this.views.some((v) => v.id === id && this.isDismissed(v))));
+		if (Object.keys(live).length !== Object.keys(dismissed).length) {
+			this.settings = { ...this.settings, dismissed: live };
+			this.persist(this.settings);
+		}
 	}
 
 	private idleVictim(candidate: WorktreeView): number | undefined {
@@ -212,6 +226,7 @@ export class OrcaStore {
 				.map((row) => this.applySeen(toView(row, titles.get(row.worktreeId))))
 				.filter((v) => !v.isArchived && (this.settings.includeMain || !v.isMain));
 			this.connection = "ok";
+			this.pruneDismissed();
 			this.assignSlots();
 			if (Date.now() - this.usageAt > USAGE_POLL_MS) void this.refreshUsage();
 		} catch (e) {
@@ -319,32 +334,17 @@ export class OrcaStore {
 	}
 
 	/**
-	 * Long press on a worktree: remove it and start a new one (same repo, new agent) on the same key.
-	 * A worktree with local changes is not removed unless the long press is repeated while the key
-	 * shows the "dirty" warning.
+	 * Long press on a worktree: take it off the deck (it stays in Orca) and start a new worktree with
+	 * a fresh agent, same repo, on this key. The deck never deletes worktrees.
 	 */
 	async replaceSlot(slot: number) {
 		const state = this.slot(slot);
 		if (state.kind !== "worktree") return this.createInSlot(slot);
-		if (state.pending && state.pending.kind !== "dirty") return;
+		if (state.pending) return;
 
 		const { view } = state;
-		const force = state.pending?.kind === "dirty";
-		this.pending.set(slot, { kind: "removing", at: Date.now() });
-		try {
-			await this.cli.run(["worktree", "rm", "--worktree", `id:${view.id}`, ...(force ? ["--force"] : [])], 60_000);
-		} catch (e) {
-			const message = e instanceof Error ? e.message : String(e);
-			this.log(`worktree rm failed: ${message}`);
-			if (!force && DIRTY_PATTERN.test(message)) {
-				this.pending.set(slot, { kind: "dirty", at: Date.now(), until: Date.now() + 6000, message });
-			} else {
-				this.fail(slot, message);
-			}
-			return;
-		}
+		this.settings = { ...this.settings, dismissed: { ...this.settings.dismissed, [view.id]: signature(view) } };
 		this.slotMap.delete(slot);
-		this.views = this.views.filter((v) => v.id !== view.id);
 		await this.create(slot, `id:${view.repoId}`);
 	}
 
@@ -403,4 +403,9 @@ function taskName(d = new Date()) {
 
 function bringOrcaToFront() {
 	if (process.platform === "darwin") execFile("open", ["-b", "com.stablyai.orca"], () => {});
+}
+
+/** Changes whenever the worktree's agent changes state. */
+function signature(view: WorktreeView): string {
+	return `${view.status}:${view.since ?? 0}`;
 }

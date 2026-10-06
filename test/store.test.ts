@@ -12,6 +12,7 @@ function fakeOrca(rows: () => OrcaPsRow[]) {
 			const cmd = args.slice(0, 2).join(" ");
 			if (cmd === "worktree ps") return { worktrees: rows() } as T;
 			if (cmd === "terminal list") return { terminals: [{ handle: "term_1", connected: true, worktreeId: "r::/w/a" }] } as T;
+			if (cmd === "worktree create") return { worktree: { id: "r::/w/new" } } as T;
 			return {} as T;
 		},
 	};
@@ -113,4 +114,27 @@ test("full deck: a just-created worktree (agent not started yet) still gets a ke
 		return s.kind === "worktree" ? s.view.id.slice(-1) : "+";
 	});
 	assert.deepEqual(shown.sort(), ["1", "3"]);
+});
+
+test("long press takes the worktree off the deck without deleting it, and starts a new one on the key", async () => {
+	const old: OrcaPsRow = { ...row("done", 100), createdAt: 1 };
+	let rows: OrcaPsRow[] = [old];
+	const { cli, calls } = fakeOrca(() => rows);
+	const store = new OrcaStore(cli, () => {});
+	store.registerSlot(0);
+	await store.refresh();
+
+	rows = [old, { ...row("working", 500), worktreeId: "r::/w/new", path: "/w/new", createdAt: 2 }];
+	await store.replaceSlot(0);
+	assert.ok(!calls.some((c) => c[0] === "worktree" && c[1] === "rm"), "never deletes in Orca");
+	assert.ok(calls.some((c) => c[0] === "worktree" && c[1] === "create" && c.includes("id:r")));
+	const s = store.slot(0);
+	assert.equal(s.kind === "worktree" ? s.view.id : null, "r::/w/new");
+	assert.equal(store.hiddenCount(), 0, "a dismissed worktree isn't counted as waiting for a key");
+
+	// It comes back when its agent changes state (here: a key frees up).
+	rows = [{ ...old, agents: [{ state: "waiting", agentType: "claude", stateStartedAt: 900 }] }];
+	await store.refresh();
+	const back = store.slot(0);
+	assert.equal(back.kind === "worktree" ? back.view.id : null, "r::/w/a");
 });
