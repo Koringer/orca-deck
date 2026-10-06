@@ -1,11 +1,11 @@
 {
   "name": "orca-deck",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Stream Deck Neo plugin: one key per Orca worktree with live agent status",
   "type": "module",
   "scripts": {
-    "build": "node build.mjs",
+    "build": "node build.mjs && node scripts/build-profile.mjs",
     "link": "streamdeck link dev.orcadeck.sdPlugin",
     "pack": "npm run build && streamdeck pack dev.orcadeck.sdPlugin --output dist --force",
     "typecheck": "tsc --noEmit",
@@ -16,6 +16,7 @@
     "@elgato/cli": "^1.10.1",
     "@types/node": "^22.20.5",
     "esbuild": "^0.28.2",
+    "fflate": "^0.8.3",
     "typescript": "^7.0.2"
   },
   "dependencies": {

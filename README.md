@@ -23,8 +23,8 @@ S'il y a des changements non commités, l'appui long ne supprime rien : la touch
 
 Il faut **l'app Stream Deck ≥ 7.6** (Mac ou Windows) et **Orca** installé.
 
-1. Double-cliquer `dist/dev.orcadeck.streamDeckPlugin`.
-2. Dans l'app Stream Deck, catégorie **Orca Deck** : glisser **Worktree** sur les 8 touches et **Orca Infobar** sur l'infobar.
+1. Télécharger `dev.orcadeck.streamDeckPlugin` depuis les [Releases](https://github.com/Koringer/orca-deck/releases) et le double-cliquer.
+2. Le plugin installe le profil **Orca Deck** sur le Neo (8 touches Worktree + infobar) et l'active. Rien à glisser.
 3. (Optionnel) réglages dans l'inspecteur : agent (`claude` par défaut), repo pour `+`, durée d'appui long, chemin du CLI.
 
 Le CLI `orca` est détecté automatiquement (PATH, `/Applications/Orca.app`, `%LOCALAPPDATA%\Programs\Orca`).
