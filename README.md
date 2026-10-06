@@ -1,46 +1,53 @@
 # Orca Deck
 
-Plugin Stream Deck (pensé pour le **Stream Deck Neo**) : une touche par worktree [Orca](https://www.onorca.dev), avec l'état de l'agent en direct.
+A Stream Deck plugin (built for the **Stream Deck Neo**): one key per [Orca](https://www.onorca.dev) worktree, with its agent's status live.
 
-| Geste | Effet |
+| Gesture | Effect |
 |---|---|
-| Appui court sur un worktree | Ouvre son terminal d'agent dans Orca (lance l'agent s'il n'y a rien) |
-| Appui long (0,7 s) sur un worktree | Le **retire du deck** (il reste dans Orca) et lance un nouveau worktree + agent dans le même repo, sur la même touche |
-| Appui sur `+` | Nouveau worktree + agent |
-| Orca fermé | N'importe quelle touche lance Orca |
+| Press a worktree | Brings its agent terminal to the front in Orca (starts the agent if nothing is running). A **Done** worktree turns **Idle** once pressed. |
+| Hold a worktree (0.7 s) | **Takes it off the deck** (it stays in Orca) and starts a new worktree + agent in the same repo, on the same key |
+| Press `+` | New worktree + agent |
+| Orca closed | Any key launches Orca |
 
-Le deck ne supprime jamais de worktree : il affiche une sélection de ceux d'Orca et peut en créer (`+`, appui long). Un worktree retiré revient sur le deck dès que son agent change d'état.
+The deck never deletes worktrees: it shows a selection of your Orca worktrees and can create new ones (`+`, long press). A worktree taken off the deck comes back as soon as its agent changes state.
 
-**Bordure épaisse = état** (elle "respire" sauf en idle) :
-🟡 working · 🔵 input (l'agent attend) · 🟢 done (respire tant que non lu) · 🔴 error · 🟣 review · ⚪ idle
+**Thick border = status** (it "breathes", except when idle):
+🟡 working · 🔵 input (the agent is waiting for you) · 🟢 done (breathes until seen) · 🔴 error · 🟣 review · ⚪ idle
 
-**Infobar du Neo** :
-- au repos : compteurs `ask / work / done / idle` + jauges de tokens (fenêtre 5 h et semaine) du compte Claude/Codex géré par Orca ;
-- si un worktree attend : "*xxx* needs you" ;
-- après appui sur une touche (6 s) : nom du worktree + statut · agent · durée · outil en cours / dernier message · commentaire · branche (défilant).
+**Key name**: the agent's conversation title (e.g. "Fix login redirect"), on up to 3 lines; the font shrinks instead of scrolling. Falls back to a name you set in Orca, then the branch Orca auto-renamed from the work, then the generated name.
 
-## Installation (n'importe quelle machine)
+**Neo infobar**:
+- at rest: `ask / work / done / idle` counters, `+N` worktrees without a key, and token usage gauges (5-hour and weekly windows) for the Claude/Codex account managed by Orca;
+- when a worktree is waiting: "*name* needs you";
+- after pressing a key (6 s): worktree name + status · agent · time · current tool / last message · comment · branch (scrolling).
 
-Il faut **l'app Stream Deck ≥ 7.6** (Mac ou Windows) et **Orca** installé.
+**Full deck**: a new worktree (or one that gets back to work) takes the key of the least recently active idle worktree; that one stays in Orca and gets a key back when one frees up. If no worktree is idle, it waits.
 
-1. Télécharger `dev.orcadeck.streamDeckPlugin` depuis les [Releases](https://github.com/Koringer/orca-deck/releases) et le double-cliquer.
-2. Le plugin installe le profil **Orca Deck** sur le Neo (8 touches Worktree + infobar) et l'active. Rien à glisser.
-3. (Optionnel) réglages dans l'inspecteur : agent (`claude` par défaut), repo pour `+`, durée d'appui long, chemin du CLI.
+## Install (any machine)
 
-Le CLI `orca` est détecté automatiquement (PATH, `/Applications/Orca.app`, `%LOCALAPPDATA%\Programs\Orca`).
-Deck plein : un nouveau worktree (ou un worktree qui se remet au travail) prend la touche du worktree Idle le moins récemment actif ; celui-ci reste dans Orca et récupère une touche dès qu'une se libère. S'il n'y a aucun Idle, il attend. L'infobar affiche `+N` pour les worktrees sans touche.
-Pour une 2ᵉ page sur le Neo, mettre `Neo page = 2` sur ses touches : elles prennent les worktrees 9 à 16.
+Requires the **Stream Deck app ≥ 7.6** (macOS or Windows) and **Orca**.
 
-## Développement
+1. Download `dev.orcadeck.streamDeckPlugin` from [Releases](https://github.com/Koringer/orca-deck/releases) and double-click it.
+2. The plugin installs and activates the **Orca Deck** profile on the Neo (8 Worktree keys + infobar). Nothing to drag.
+3. (Optional) settings in the property inspector: agent (`claude` by default), repo for `+`, long-press duration, CLI path.
+
+The `orca` CLI is detected automatically (PATH, `/Applications/Orca.app`, `%LOCALAPPDATA%\Programs\Orca`).
+For a second Neo page, set `Neo page = 2` on its keys: they show worktrees 9 to 16.
+
+### Other Stream Deck models
+
+The **Worktree** key works on every model with LCD keys (Mini, MK.2, XL, +, Studio, Mobile); key positions adapt to the device size. The infobar and the bundled profile are Neo-only: on other models, drag the Worktree action onto the keys yourself.
+
+## Development
 
 ```bash
 npm install
-npm run build      # bundle → dev.orcadeck.sdPlugin/bin/plugin.js
-npm run link       # installe le dossier en mode dev dans l'app Stream Deck
-npm run dev        # rebuild en continu (puis `npx streamdeck restart dev.orcadeck`)
+npm run build      # bundle → dev.orcadeck.sdPlugin/bin/plugin.js + Neo profile
+npm run link       # install the folder in the Stream Deck app (dev mode)
+npm run dev        # rebuild on change (then `npx streamdeck restart dev.orcadeck`)
 npm test
 npm run pack       # → dist/dev.orcadeck.streamDeckPlugin
 ```
 
-Données : `orca worktree ps --json` (toutes les 1,5 s) et `orca account list --json` (rate limits, toutes les 60 s).
-Actions : `orca terminal list|switch|create`, `orca worktree create --agent … --activate`.
+Data: `orca worktree ps --json` and `orca terminal list --json` (every 1.5 s), `orca account list --json` (rate limits, every 60 s).
+Actions: `orca terminal list|switch|create`, `orca worktree create --agent … --activate`.
