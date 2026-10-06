@@ -3,9 +3,6 @@ import { action, SingletonAction, type FeedbackPayload, type NeoInfobarAction, t
 import type { OrcaStore } from "../orca/store.ts";
 import { INFOBAR_LAYOUT, renderInfobar } from "../render/infobar.ts";
 
-/** How long the infobar shows the details of the last pressed worktree. */
-const FOCUS_MS = 6000;
-
 @action({ UUID: "dev.orcadeck.infobar" })
 export class OrcaInfobar extends SingletonAction {
 	private readonly bars = new Map<string, { action: NeoInfobarAction<never>; last?: string }>();
@@ -27,8 +24,7 @@ export class OrcaInfobar extends SingletonAction {
 	tick(now: number) {
 		if (this.bars.size === 0) return;
 		const { store } = this;
-		const focusView = store.focus && now - store.focus.at < FOCUS_MS ? (store.views.find((v) => v.id === store.focus!.id) ?? null) : null;
-		const feedback = renderInfobar({ connection: store.connection, views: store.views, hidden: store.hiddenCount(), focus: focusView, usage: store.usage, hooksIssue: store.hooksIssue, now });
+		const feedback = renderInfobar({ connection: store.connection, views: store.views, hidden: store.hiddenCount(), usage: store.usage, hooksIssue: store.hooksIssue, now });
 		const serialized = JSON.stringify(feedback);
 		for (const bar of this.bars.values()) {
 			if (bar.last === serialized) continue;

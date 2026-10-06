@@ -17,7 +17,7 @@ The deck never deletes or creates worktrees by itself: it shows a selection of y
 **Key name**: the agent's conversation title (e.g. "Fix login redirect"), on up to 3 lines; the font shrinks instead of scrolling. Falls back to a name you set in Orca, then the branch Orca auto-renamed from the work, then the generated name.
 
 **Neo infobar**:
-- line 1: `ask / work / done / idle` counters and `+N` worktrees without a key; "*name* needs you" when a worktree is waiting; for 6 s after pressing a key, that worktree's name · status · agent · time · current tool / last message · comment · branch (scrolling);
+- line 1: agent status counters `ask / work / done / idle`, plus `+N` worktrees without a key;
 - line 2: always token usage (5-hour and weekly gauges) for the Claude/Codex account managed by Orca, or why Orca has none.
 
 **Instant statuses** rely on the agent status hooks Orca installs in each agent's config (e.g. `~/.claude/settings.json`); without them Orca can only read the terminal screen, so a question only turns the key blue once the terminal is displayed. The plugin checks them every 5 minutes, reinstalls them once (`orca agent hooks on`) if they're missing, and otherwise shows a warning in the infobar.

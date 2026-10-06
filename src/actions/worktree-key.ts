@@ -48,7 +48,6 @@ export class WorktreeKey extends SingletonAction<KeySettings> {
 		if (inst) {
 			inst.downAt = Date.now();
 			inst.fired = false;
-			this.store.touch(inst.slot);
 		}
 	}
 

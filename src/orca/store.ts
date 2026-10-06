@@ -62,8 +62,6 @@ export const DEFAULTS = { agent: "claude", holdMs: 700, pollMs: 1500 } as const;
 export class OrcaStore {
 	connection: Connection = "starting";
 	views: WorktreeView[] = [];
-	/** Worktree last pressed, shown in the infobar for a few seconds. */
-	focus: { id: string; at: number } | null = null;
 	/** Rate-limit usage of the configured agent's account, from `orca account list`. */
 	usage: Usage | null = null;
 	private usageAt = 0;
@@ -181,7 +179,6 @@ export class OrcaStore {
 			}
 			this.pending.delete(slot);
 			this.slotMap.set(slot, view.id);
-			this.focus = { id: view.id, at: Date.now() };
 			waiting.splice(waiting.indexOf(view), 1);
 			changed = true;
 		}
@@ -374,18 +371,11 @@ export class OrcaStore {
 		this.views = this.views.map((v) => (v.id === view.id ? { ...v, status: "idle", unread: false } : v));
 	}
 
-	/** Shows the worktree behind `slot` in the infobar. */
-	touch(slot: number) {
-		const state = this.slot(slot);
-		if (state.kind === "worktree") this.focus = { id: state.view.id, at: Date.now() };
-	}
-
 	/** Short press on a worktree: bring its agent terminal to the front in Orca. */
 	async focusWorktree(slot: number) {
 		const state = this.slot(slot);
 		if (state.kind !== "worktree") return;
 		const { view } = state;
-		this.focus = { id: view.id, at: Date.now() };
 		if (view.status === "done") this.markSeen(view);
 
 		const { terminals } = await this.cli.run<{ terminals: { handle: string; connected?: boolean }[] }>([

@@ -1,6 +1,6 @@
 import type { DeckStatus, WorktreeView } from "../orca/model.ts";
 import type { Connection, Usage, UsageWindow } from "../orca/store.ts";
-import { elapsed, marquee, STATUS_STYLE } from "./theme.ts";
+import { marquee, STATUS_STYLE } from "./theme.ts";
 
 /** Layout file (relative to the .sdPlugin folder), 232 × 50 px. */
 export const INFOBAR_LAYOUT = "layouts/infobar.json";
@@ -18,7 +18,6 @@ export type InfobarFrame = {
 	connection: Connection;
 	views: WorktreeView[];
 	hidden: number;
-	focus: WorktreeView | null;
 	usage: Usage | null;
 	/** Shown instead of the counters when Orca's agent status hooks are missing. */
 	hooksIssue?: string | null;
@@ -76,29 +75,15 @@ function bottomDetail(value: string, now: number): Feedback {
 	return { detail: { value: marquee(value, 32, now, 250), enabled: true }, ...off(USAGE_KEYS) };
 }
 
-export function describe(v: WorktreeView, now: number): string {
-	return [STATUS_STYLE[v.status].label, v.agent, elapsed(v.since, now), v.activity, v.comment, v.branch].filter(Boolean).join(" · ");
-}
-
-/**
- * Line 1: what's going on (counters, "needs you", hooks warning, details of the pressed worktree,
- * Orca offline). Line 2: always token usage (gauges, or why there are none).
- */
-export function renderInfobar({ connection, views, hidden, focus, usage, hooksIssue, now }: InfobarFrame): Feedback {
-	const asking = views.filter((v) => v.status === "input");
+/** Line 1: status counters of the agents (or why they can't be read). Line 2: always token usage. */
+export function renderInfobar({ connection, views, hidden, usage, hooksIssue, now }: InfobarFrame): Feedback {
 	const top =
 		connection === "no-cli"
 			? topTitle(marquee("Orca CLI not found · set its path in the plugin settings", 24, now), STATUS_STYLE.error.color)
 			: connection !== "ok"
 				? topTitle(marquee("Orca offline · press any key to open it", 24, now), "#FFFFFF")
-				: focus
-					? topTitle(marquee(`${focus.name} · ${describe(focus, now)}`, 24, now), STATUS_STYLE[focus.status].color)
-					: hooksIssue
-						? topTitle(marquee(`⚠ ${hooksIssue}`, 24, now), STATUS_STYLE.working.color)
-						: asking.length === 1
-							? topTitle(marquee(`${asking[0].name} needs you`, 24, now), STATUS_STYLE.input.color)
-							: asking.length > 1
-								? topTitle(`${asking.length} worktrees need you`, STATUS_STYLE.input.color)
-								: topCounts(views, hidden);
+				: hooksIssue
+					? topTitle(marquee(`⚠ ${hooksIssue}`, 24, now), STATUS_STYLE.working.color)
+					: topCounts(views, hidden);
 	return { ...top, ...bottomUsage(usage, now) };
 }

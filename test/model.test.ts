@@ -93,23 +93,23 @@ test("renders every key state as valid-looking SVG", () => {
 	assert.match(frames[2], />\+</);
 });
 
-test("infobar: usage gauges at rest, details on focus", () => {
+test("infobar: line 1 status counters, line 2 always usage", () => {
 	const view = toView(row({ comment: "tests green", agents: [{ state: "working", agentType: "claude", toolName: "Edit" }] }));
 	const usage = { provider: "claude", session: { usedPercent: 72, resetsAt: null }, weekly: { usedPercent: 12, resetsAt: null } };
-	const rest = renderInfobar({ connection: "ok", views: [view], hidden: 0, focus: null, usage, now: 0 });
+	const rest = renderInfobar({ connection: "ok", views: [view], hidden: 0, usage, now: 0 });
 	assert.equal(rest.u1b.value, 72);
 	assert.equal(rest.u1p.value, "72%");
 	assert.equal(rest.c2.value, "1 work");
 	assert.equal(rest.detail.enabled, false);
 
-	const broken = renderInfobar({ connection: "ok", views: [view], hidden: 0, focus: null, usage: { provider: "claude", session: null, weekly: null, error: "Not signed in" }, now: 0 });
+	const broken = renderInfobar({ connection: "ok", views: [view], hidden: 0, usage: { provider: "claude", session: null, weekly: null, error: "Not signed in" }, now: 0 });
 	assert.ok(String(broken.detail.value).startsWith("Claude usage unavailable"));
 
-	const focus = renderInfobar({ connection: "ok", views: [view], hidden: 0, focus: view, usage, now: 0 });
-	assert.match(String(focus.title.value), /^fix-login · WORKING/);
-	assert.equal(focus.u1b.enabled, true, "line 2 keeps the usage while a worktree is focused");
-	assert.equal(focus.detail.enabled, false);
+	const asking = toView(row({ worktreeId: "r::/w/b", agents: [{ state: "waiting" }] }));
+	const withAsk = renderInfobar({ connection: "ok", views: [view, asking], hidden: 0, usage, now: 0 });
+	assert.equal(withAsk.c1.value, "1 ask", "line 1 stays on the counters");
+	assert.equal(withAsk.u1p.value, "72%");
 
-	const offline = renderInfobar({ connection: "offline", views: [], hidden: 0, focus: null, usage, now: 0 });
+	const offline = renderInfobar({ connection: "offline", views: [], hidden: 0, usage, now: 0 });
 	assert.equal(offline.u1p.value, "72%");
 });
