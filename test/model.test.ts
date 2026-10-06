@@ -102,6 +102,9 @@ test("infobar: usage gauges at rest, details on focus", () => {
 	assert.equal(rest.c2.value, "1 work");
 	assert.equal(rest.detail.enabled, false);
 
+	const broken = renderInfobar({ connection: "ok", views: [view], hidden: 0, focus: null, usage: { provider: "claude", session: null, weekly: null, error: "Not signed in" }, now: 0 });
+	assert.ok(String(broken.detail.value).startsWith("Claude usage unavailable"));
+
 	const focus = renderInfobar({ connection: "ok", views: [view], hidden: 0, focus: view, usage, now: 0 });
 	assert.equal(focus.title.value, "fix-login");
 	assert.match(String(focus.detail.value), /WORKING · claude/);

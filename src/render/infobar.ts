@@ -55,6 +55,10 @@ function usageColor(pct: number) {
 
 /** Bottom line: token usage gauges (5h session + weekly), or a free text detail line. */
 function bottomUsage(usage: Usage | null, views: WorktreeView[], hidden: number, now: number): Feedback {
+	if (usage?.error) {
+		const name = usage.provider.charAt(0).toUpperCase() + usage.provider.slice(1);
+		return bottomDetail(`${name} usage unavailable: ${usage.error}`, now);
+	}
 	if (!usage || (!usage.session && !usage.weekly)) {
 		const total = `${views.length} worktree${views.length === 1 ? "" : "s"}${hidden ? ` (+${hidden} hidden)` : ""}`;
 		return bottomDetail(total, now);

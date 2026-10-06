@@ -33,10 +33,19 @@ export type SlotState =
 	| { kind: "empty"; pending?: SlotPending };
 
 export type UsageWindow = { usedPercent: number; resetsAt: number | null };
-export type Usage = { provider: string; session: UsageWindow | null; weekly: UsageWindow | null };
+export type Usage = {
+	provider: string;
+	session: UsageWindow | null;
+	weekly: UsageWindow | null;
+	/** Why Orca has no usage for this account (e.g. "Codex not signed in"), when it has none. */
+	error?: string;
+};
 
 type RateLimitWindow = { usedPercent?: number; resetsAt?: number };
-type RateLimits = Record<string, { session?: RateLimitWindow | null; weekly?: RateLimitWindow | null; status?: string } | undefined>;
+type RateLimits = Record<
+	string,
+	{ session?: RateLimitWindow | null; weekly?: RateLimitWindow | null; status?: string; error?: string | null } | undefined
+>;
 
 type TerminalRow = { worktreeId?: string; title?: string | null; agentIdentity?: string | null; lastOutputAt?: number | null };
 
@@ -335,7 +344,12 @@ export class OrcaStore {
 			const limits = rateLimits?.[provider];
 			const win = (w?: RateLimitWindow | null): UsageWindow | null =>
 				typeof w?.usedPercent === "number" ? { usedPercent: w.usedPercent, resetsAt: w.resetsAt ?? null } : null;
-			this.usage = limits ? { provider, session: win(limits.session), weekly: win(limits.weekly) } : null;
+			const session = win(limits?.session);
+			const weekly = win(limits?.weekly);
+			const error = session || weekly ? undefined : limits?.error || limits?.status || "Orca reports no usage for this account";
+			this.usage = { provider, session, weekly, ...(error ? { error } : {}) };
+			if (error) this.logOnce("usage", new Error(error));
+			else this.recovered("usage");
 		} catch (e) {
 			this.logOnce("account list", e);
 		}
