@@ -138,3 +138,16 @@ test("long press takes the worktree off the deck without deleting it, and starts
 	const back = store.slot(0);
 	assert.equal(back.kind === "worktree" ? back.view.id : null, "r::/w/a");
 });
+
+test("a failing poll is logged once, not on every poll", async () => {
+	const logs: string[] = [];
+	const cli = {
+		run: async <T,>(args: string[]): Promise<T> => {
+			if (args[0] === "terminal") throw new Error("Orca is not running");
+			return { worktrees: [] } as T;
+		},
+	};
+	const store = new OrcaStore(cli, () => {}, (m) => logs.push(m));
+	for (let i = 0; i < 5; i++) await store.refresh();
+	assert.equal(logs.filter((l) => l.startsWith("terminal list failed")).length, 1);
+});

@@ -242,27 +242,42 @@ export class OrcaStore {
 		const titles = new Map<string, string>();
 		try {
 			const { terminals } = await this.cli.run<{ terminals: TerminalRow[] }>(["terminal", "list", "--limit", "500"]);
+			this.recovered("terminal list");
 			const agentTerminals = terminals
 				.filter((t) => t.agentIdentity && t.title && t.worktreeId)
 				.sort((a, b) => (a.lastOutputAt ?? 0) - (b.lastOutputAt ?? 0));
 			for (const t of agentTerminals) titles.set(t.worktreeId!, t.title!);
 		} catch (e) {
-			this.log(`terminal list failed: ${e instanceof Error ? e.message : e}`);
+			this.logOnce("terminal list", e);
 		}
 		return titles;
+	}
+
+	private readonly failing = new Set<string>();
+
+	/** Logs a polling failure once, not on every poll, so a closed Orca doesn't fill the log. */
+	private logOnce(what: string, e: unknown) {
+		if (this.failing.has(what)) return;
+		this.failing.add(what);
+		this.log(`${what} failed: ${e instanceof Error ? e.message : e}`);
+	}
+
+	private recovered(what: string) {
+		if (this.failing.delete(what)) this.log(`${what} works again`);
 	}
 
 	private async refreshUsage() {
 		this.usageAt = Date.now();
 		try {
 			const { rateLimits } = await this.cli.run<{ rateLimits?: RateLimits }>(["account", "list"]);
+			this.recovered("account list");
 			const provider = rateLimits?.[this.config.agent] ? this.config.agent : "claude";
 			const limits = rateLimits?.[provider];
 			const win = (w?: RateLimitWindow | null): UsageWindow | null =>
 				typeof w?.usedPercent === "number" ? { usedPercent: w.usedPercent, resetsAt: w.resetsAt ?? null } : null;
 			this.usage = limits ? { provider, session: win(limits.session), weekly: win(limits.weekly) } : null;
 		} catch (e) {
-			this.log(`usage refresh failed: ${e instanceof Error ? e.message : e}`);
+			this.logOnce("account list", e);
 		}
 	}
 
