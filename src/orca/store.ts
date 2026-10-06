@@ -44,6 +44,9 @@ type TerminalRow = { worktreeId?: string; title?: string | null; agentIdentity?:
 const AWAIT_MS = 3 * 60_000;
 
 const USAGE_POLL_MS = 60_000;
+const HOOKS_POLL_MS = 5 * 60_000;
+
+type HooksStatus = { enabled?: boolean; statuses?: { agent: string; managedHooksPresent?: boolean }[] };
 
 export const DEFAULTS = { agent: "claude", holdMs: 700, pollMs: 1500 } as const;
 
@@ -55,6 +58,10 @@ export class OrcaStore {
 	/** Rate-limit usage of the configured agent's account, from `orca account list`. */
 	usage: Usage | null = null;
 	private usageAt = 0;
+	/** Set when Orca's agent status hooks are missing: statuses then only update while the terminal is on screen. */
+	hooksIssue: string | null = null;
+	private hooksAt = 0;
+	private hooksRepairTried = false;
 
 	private settings: GlobalSettings = {};
 	private readonly slotMap = new Map<number, string>();
@@ -251,6 +258,7 @@ export class OrcaStore {
 			this.pruneDismissed();
 			this.assignSlots();
 			if (Date.now() - this.usageAt > USAGE_POLL_MS) void this.refreshUsage();
+			if (Date.now() - this.hooksAt > HOOKS_POLL_MS) void this.checkHooks();
 		} catch (e) {
 			const code = e instanceof OrcaError ? e.code : "unknown";
 			this.connection = code === "cli_not_found" ? "no-cli" : "offline";
@@ -286,6 +294,36 @@ export class OrcaStore {
 
 	private recovered(what: string) {
 		if (this.failing.delete(what)) this.log(`${what} works again`);
+	}
+
+	/**
+	 * Orca learns "needs input" / "working" / "done" instantly from hooks it installs in each agent's
+	 * config (e.g. ~/.claude/settings.json). Without them it guesses from the terminal screen, which only
+	 * updates while the terminal is displayed. Reinstalls them once if missing, otherwise warns.
+	 */
+	async checkHooks(): Promise<void> {
+		this.hooksAt = Date.now();
+		try {
+			const status = await this.cli.run<HooksStatus>(["agent", "hooks", "status"]);
+			const used = new Set([this.config.agent, ...this.views.map((v) => v.agent).filter((a): a is string => !!a)]);
+			const missing = (status.statuses ?? []).filter((s) => used.has(s.agent) && !s.managedHooksPresent).map((s) => s.agent);
+
+			if (status.enabled === false) {
+				this.hooksIssue = "Orca agent hooks are off: statuses lag until the terminal is on screen";
+			} else if (missing.length === 0) {
+				this.hooksIssue = null;
+			} else if (!this.hooksRepairTried) {
+				this.hooksRepairTried = true;
+				this.log(`agent hooks missing for ${missing.join(", ")}: running orca agent hooks on`);
+				await this.cli.run(["agent", "hooks", "on"], 30_000);
+				return this.checkHooks();
+			} else {
+				this.hooksIssue = `${missing.join(", ")} hooks missing: statuses lag until the terminal is on screen`;
+			}
+			this.recovered("agent hooks status");
+		} catch (e) {
+			this.logOnce("agent hooks status", e);
+		}
 	}
 
 	private async refreshUsage() {

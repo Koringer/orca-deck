@@ -51,7 +51,7 @@ export function resolveOrcaBinary(override?: string): string | null {
 	return appCandidates.find((c) => existsSync(c)) ?? null;
 }
 
-const READ_ONLY = new Set(["worktree ps", "terminal list", "account list", "repo list"]);
+const READ_ONLY = new Set(["worktree ps", "terminal list", "account list", "repo list", "agent hooks status"]);
 
 export class OrcaCli {
 	private readonly getBinary: () => string | null;
@@ -67,7 +67,7 @@ export class OrcaCli {
 	run<T = unknown>(args: string[], timeoutMs = 15_000): Promise<T> {
 		const bin = this.getBinary();
 		if (!bin) return Promise.reject(new OrcaError("cli_not_found", "Orca CLI not found"));
-		if (!READ_ONLY.has(args.slice(0, 2).join(" "))) this.onCommand(args);
+		if (!READ_ONLY.has(args.slice(0, 2).join(" ")) && !READ_ONLY.has(args.slice(0, 3).join(" "))) this.onCommand(args);
 
 		return new Promise((resolve, reject) => {
 			execFile(

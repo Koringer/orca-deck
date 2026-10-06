@@ -190,3 +190,29 @@ test("a failing poll is logged once, not on every poll", async () => {
 	for (let i = 0; i < 5; i++) await store.refresh();
 	assert.equal(logs.filter((l) => l.startsWith("terminal list failed")).length, 1);
 });
+
+test("missing agent hooks: reinstalled once, then reported in the infobar", async () => {
+	const calls: string[][] = [];
+	let present = false;
+	let fixable = true;
+	const cli = {
+		run: async <T,>(args: string[]): Promise<T> => {
+			calls.push(args);
+			const cmd = args.join(" ");
+			if (cmd === "agent hooks status") return { enabled: true, statuses: [{ agent: "claude", managedHooksPresent: present }] } as T;
+			if (cmd === "agent hooks on") present = fixable;
+			return { worktrees: [], terminals: [] } as T;
+		},
+	};
+	const store = new OrcaStore(cli, () => {});
+	await store.checkHooks();
+	assert.ok(calls.some((c) => c.join(" ") === "agent hooks on"));
+	assert.equal(store.hooksIssue, null, "repaired");
+
+	// Something wipes them again and the repair doesn't stick: warn, don't loop.
+	present = false;
+	fixable = false;
+	await store.checkHooks();
+	assert.match(store.hooksIssue ?? "", /claude hooks missing/);
+	assert.equal(calls.filter((c) => c.join(" ") === "agent hooks on").length, 1);
+});

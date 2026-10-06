@@ -20,6 +20,8 @@ export type InfobarFrame = {
 	hidden: number;
 	focus: WorktreeView | null;
 	usage: Usage | null;
+	/** Shown instead of the counters when Orca's agent status hooks are missing. */
+	hooksIssue?: string | null;
 	now: number;
 };
 
@@ -81,7 +83,7 @@ export function describe(v: WorktreeView, now: number): string {
  * - focus (a key was just pressed): worktree name + status · agent · time · current tool / last message · comment · branch
  * - otherwise: status counters (or "X needs you" when a worktree waits for input) + token usage gauges
  */
-export function renderInfobar({ connection, views, hidden, focus, usage, now }: InfobarFrame): Feedback {
+export function renderInfobar({ connection, views, hidden, focus, usage, hooksIssue, now }: InfobarFrame): Feedback {
 	if (connection === "no-cli") return { ...topTitle("Orca CLI not found", STATUS_STYLE.error.color), ...bottomDetail("Set its path in the plugin settings", now) };
 	if (connection !== "ok") return { ...topTitle("Orca offline", "#FFFFFF"), ...bottomDetail("Press any key to open Orca", now) };
 
@@ -90,8 +92,9 @@ export function renderInfobar({ connection, views, hidden, focus, usage, now }: 
 	}
 
 	const asking = views.filter((v) => v.status === "input");
-	const top =
-		asking.length === 1
+	const top = hooksIssue
+		? topTitle(marquee(`⚠ ${hooksIssue}`, 24, now), STATUS_STYLE.working.color)
+		: asking.length === 1
 			? topTitle(marquee(`${asking[0].name} needs you`, 24, now), STATUS_STYLE.input.color)
 			: asking.length > 1
 				? topTitle(`${asking.length} worktrees need you`, STATUS_STYLE.input.color)

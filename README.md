@@ -21,6 +21,8 @@ The deck never deletes or creates worktrees by itself: it shows a selection of y
 - when a worktree is waiting: "*name* needs you";
 - after pressing a key (6 s): worktree name + status · agent · time · current tool / last message · comment · branch (scrolling).
 
+**Instant statuses** rely on the agent status hooks Orca installs in each agent's config (e.g. `~/.claude/settings.json`); without them Orca can only read the terminal screen, so a question only turns the key blue once the terminal is displayed. The plugin checks them every 5 minutes, reinstalls them once (`orca agent hooks on`) if they're missing, and otherwise shows a warning in the infobar.
+
 **Full deck**: a new worktree (or one that gets back to work) takes the key of the least recently active idle worktree; that one stays in Orca and gets a key back when one frees up. If no worktree is idle, it waits.
 
 ## Install (any machine)

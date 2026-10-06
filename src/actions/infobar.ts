@@ -28,7 +28,7 @@ export class OrcaInfobar extends SingletonAction {
 		if (this.bars.size === 0) return;
 		const { store } = this;
 		const focusView = store.focus && now - store.focus.at < FOCUS_MS ? (store.views.find((v) => v.id === store.focus!.id) ?? null) : null;
-		const feedback = renderInfobar({ connection: store.connection, views: store.views, hidden: store.hiddenCount(), focus: focusView, usage: store.usage, now });
+		const feedback = renderInfobar({ connection: store.connection, views: store.views, hidden: store.hiddenCount(), focus: focusView, usage: store.usage, hooksIssue: store.hooksIssue, now });
 		const serialized = JSON.stringify(feedback);
 		for (const bar of this.bars.values()) {
 			if (bar.last === serialized) continue;
