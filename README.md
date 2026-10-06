@@ -51,3 +51,7 @@ npm run pack       # → dist/dev.orcadeck.streamDeckPlugin
 
 Data: `orca worktree ps --json` and `orca terminal list --json` (every 1.5 s), `orca account list --json` (rate limits, every 60 s).
 Actions: `orca terminal list|switch|create`, `orca worktree create --agent … --activate`.
+
+## License
+
+[MIT](LICENSE)
