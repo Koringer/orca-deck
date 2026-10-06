@@ -56,15 +56,14 @@ function topTitle(value: string, color: string): Feedback {
 /** Line 1 while an agent on the deck is shown in Orca: how full its context window is. */
 function topContext({ name, context }: ActiveContext, now: number): Feedback {
 	const pct = Math.round(context.percent);
-	const tokens = context.tokens >= 1000 ? `${Math.round(context.tokens / 1000)}k` : String(context.tokens);
 	return {
 		title: { enabled: false },
 		hid: { enabled: false },
 		...off(COUNTS.map((c) => c.key)),
-		x1l: { value: "ctx", color: "#FFFFFF", enabled: true },
+		x1l: { value: "ctx", enabled: true },
 		x1b: { value: pct, bar_fill_c: usageColor(pct), enabled: true },
-		x1p: { value: `${pct}% ${tokens}`, color: "#FFFFFF", enabled: true },
-		x1n: { value: marquee(name, 11, now), color: "#FFFFFF", enabled: true },
+		x1p: { value: `${pct}%`, color: "#FFFFFF", enabled: true },
+		x1n: { value: marquee(name, 12, now), color: "#FFFFFF", enabled: true },
 	};
 }
 
@@ -83,7 +82,7 @@ function bottomUsage(usage: Usage | null, now: number): Feedback {
 		const p = Math.round(usedPercent);
 		return {
 			detail: { enabled: false },
-			u1l: { value: "mo", color: "#FFFFFF", enabled: true },
+			u1l: { value: "mo", enabled: true },
 			u1b: { value: p, bar_fill_c: usageColor(p), enabled: true },
 			u1p: { value: `${p}%`, color: "#FFFFFF", enabled: true },
 			u2t: { value: `${formatMoney(used)} / ${formatMoney(limit)}`, color: "#FFFFFF", enabled: true },
@@ -95,7 +94,7 @@ function bottomUsage(usage: Usage | null, now: number): Feedback {
 		const pct = Math.round(w?.usedPercent ?? 0);
 		const color = w ? usageColor(pct) : DIM;
 		return {
-			[`${prefix}l`]: { value: label, color: "#FFFFFF", enabled: true },
+			[`${prefix}l`]: { value: label, enabled: true },
 			[`${prefix}b`]: { value: pct, bar_fill_c: color, enabled: true },
 			[`${prefix}p`]: { value: w ? `${pct}%` : "–", color: "#FFFFFF", enabled: true },
 		};

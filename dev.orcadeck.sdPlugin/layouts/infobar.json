@@ -9,17 +9,17 @@
 		{"key": "c4", "type": "text", "rect": [150, 3, 46, 20], "alignment": "left", "font": {"size": 13, "weight": 700}},
 		{"key": "hid", "type": "text", "rect": [196, 3, 32, 20], "alignment": "right", "font": {"size": 13, "weight": 700}, "color": "#FFFFFF", "enabled": false},
 		{"key": "title", "type": "text", "rect": [6, 2, 220, 22], "zOrder": 1, "enabled": false, "alignment": "left", "font": {"size": 15, "weight": 700}, "color": "#FFFFFF"},
-		{"key": "u1l", "type": "text", "rect": [6, 28, 20, 18], "alignment": "left", "font": {"size": 12, "weight": 600}, "color": "#FFFFFF", "value": "5h"},
-		{"key": "u1b", "type": "bar", "rect": [26, 33, 58, 8], "value": 0, "range": {"min": 0, "max": 100}, "bar_bg_c": "#4A4F5C", "bar_fill_c": "#2BD576", "border_w": 0},
-		{"key": "u1p", "type": "text", "rect": [86, 28, 34, 18], "alignment": "left", "font": {"size": 12, "weight": 700}},
-		{"key": "u2l", "type": "text", "rect": [122, 28, 20, 18], "alignment": "left", "font": {"size": 12, "weight": 600}, "color": "#FFFFFF", "value": "7d"},
-		{"key": "u2b", "type": "bar", "rect": [142, 33, 50, 8], "value": 0, "range": {"min": 0, "max": 100}, "bar_bg_c": "#4A4F5C", "bar_fill_c": "#2BD576", "border_w": 0},
-		{"key": "u2p", "type": "text", "rect": [194, 28, 34, 18], "alignment": "left", "font": {"size": 12, "weight": 700}},
+		{"key": "u1l", "type": "text", "rect": [4, 28, 28, 18], "alignment": "center", "font": {"size": 12, "weight": 700}, "color": "#FFFFFF", "value": "5h", "background": "#2A2E38"},
+		{"key": "u1b", "type": "bar", "rect": [36, 33, 60, 8], "value": 0, "range": {"min": 0, "max": 100}, "bar_bg_c": "#4A4F5C", "bar_fill_c": "#2BD576", "border_w": 0},
+		{"key": "u1p", "type": "text", "rect": [100, 27, 38, 20], "alignment": "left", "font": {"size": 13, "weight": 700}},
+		{"key": "u2l", "type": "text", "rect": [140, 28, 28, 18], "alignment": "center", "font": {"size": 12, "weight": 700}, "color": "#FFFFFF", "value": "7d", "background": "#2A2E38"},
+		{"key": "u2b", "type": "bar", "rect": [172, 33, 26, 8], "value": 0, "range": {"min": 0, "max": 100}, "bar_bg_c": "#4A4F5C", "bar_fill_c": "#2BD576", "border_w": 0},
+		{"key": "u2p", "type": "text", "rect": [200, 27, 30, 20], "alignment": "left", "font": {"size": 13, "weight": 700}},
 		{"key": "detail", "type": "text", "rect": [6, 27, 220, 20], "zOrder": 1, "enabled": false, "alignment": "left", "font": {"size": 13, "weight": 500}, "color": "#FFFFFF"},
-		{"key": "x1l", "type": "text", "rect": [4, 3, 30, 20], "zOrder": 2, "enabled": false, "alignment": "left", "font": {"size": 13, "weight": 700}, "color": "#FFFFFF", "value": "ctx"},
-		{"key": "x1b", "type": "bar", "rect": [34, 9, 66, 8], "zOrder": 2, "enabled": false, "value": 0, "range": {"min": 0, "max": 100}, "bar_bg_c": "#4A4F5C", "bar_fill_c": "#2BD576", "border_w": 0},
-		{"key": "x1p", "type": "text", "rect": [104, 3, 40, 20], "zOrder": 2, "enabled": false, "alignment": "left", "font": {"size": 13, "weight": 700}, "color": "#FFFFFF"},
-		{"key": "x1n", "type": "text", "rect": [146, 3, 82, 20], "zOrder": 2, "enabled": false, "alignment": "left", "font": {"size": 13, "weight": 600}, "color": "#FFFFFF"},
-		{"key": "u2t", "type": "text", "rect": [122, 27, 106, 20], "zOrder": 2, "enabled": false, "alignment": "left", "font": {"size": 12, "weight": 700}, "color": "#FFFFFF"}
+		{"key": "x1l", "type": "text", "rect": [4, 4, 28, 18], "zOrder": 2, "enabled": false, "alignment": "center", "font": {"size": 12, "weight": 700}, "color": "#FFFFFF", "value": "ctx", "background": "#2A2E38"},
+		{"key": "x1b", "type": "bar", "rect": [36, 9, 60, 8], "zOrder": 2, "enabled": false, "value": 0, "range": {"min": 0, "max": 100}, "bar_bg_c": "#4A4F5C", "bar_fill_c": "#2BD576", "border_w": 0},
+		{"key": "x1p", "type": "text", "rect": [100, 3, 38, 20], "zOrder": 2, "enabled": false, "alignment": "left", "font": {"size": 13, "weight": 700}, "color": "#FFFFFF"},
+		{"key": "x1n", "type": "text", "rect": [140, 3, 88, 20], "zOrder": 2, "enabled": false, "alignment": "left", "font": {"size": 13, "weight": 600}, "color": "#FFFFFF"},
+		{"key": "u2t", "type": "text", "rect": [140, 27, 90, 20], "zOrder": 2, "enabled": false, "alignment": "left", "font": {"size": 13, "weight": 700}, "color": "#FFFFFF"}
 	]
 }

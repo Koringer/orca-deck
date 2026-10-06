@@ -1,7 +1,7 @@
 {
 	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
 	"Name": "Orca Deck",
-	"Version": "0.3.0.0",
+	"Version": "0.3.1.0",
 	"Author": "Jérémie Paret",
 	"Description": "One key per Orca worktree with live agent status. Press to focus, hold to swap in a fresh worktree (never deletes), + to start a new one. Neo infobar shows agent status counters (or the active agent's context window) and token usage.",
 	"UUID": "dev.orcadeck",
