@@ -17,6 +17,8 @@ export type GlobalSettings = {
 	pollMs?: number;
 	/** slot index → worktree id, so keys keep their worktree across restarts. */
 	slots?: Record<string, string>;
+	/** worktree id → "done" state (its start time) the user already looked at; shown as idle. */
+	seen?: Record<string, number>;
 };
 
 export type SlotPending =
@@ -61,11 +63,15 @@ export class OrcaStore {
 	private pollTimer: NodeJS.Timeout | null = null;
 	private polling = false;
 
-	constructor(
-		private readonly cli: OrcaCli,
-		private readonly persist: (s: GlobalSettings) => void,
-		private readonly log: (msg: string) => void = () => {},
-	) {}
+	private readonly cli: Pick<OrcaCli, "run">;
+	private readonly persist: (s: GlobalSettings) => void;
+	private readonly log: (msg: string) => void;
+
+	constructor(cli: Pick<OrcaCli, "run">, persist: (s: GlobalSettings) => void, log: (msg: string) => void = () => {}) {
+		this.cli = cli;
+		this.persist = persist;
+		this.log = log;
+	}
 
 	get config() {
 		return {
@@ -175,7 +181,7 @@ export class OrcaStore {
 				this.agentTitles(),
 			]);
 			this.views = result.worktrees
-				.map((row) => toView(row, titles.get(row.worktreeId)))
+				.map((row) => this.applySeen(toView(row, titles.get(row.worktreeId))))
 				.filter((v) => !v.isArchived && (this.settings.includeMain || !v.isMain));
 			this.connection = "ok";
 			this.assignSlots();
@@ -219,6 +225,23 @@ export class OrcaStore {
 
 	// ---------------------------------------------------------------- actions
 
+	/** A "done" worktree the user has pressed shows as idle until its agent changes state again. */
+	private applySeen(view: WorktreeView): WorktreeView {
+		const seen = this.settings.seen?.[view.id];
+		if (seen === undefined) return view;
+		if (view.status === "done" && (view.since ?? 0) === seen) return { ...view, status: "idle", unread: false };
+		const { [view.id]: _, ...rest } = this.settings.seen ?? {};
+		this.settings = { ...this.settings, seen: rest };
+		this.persist(this.settings);
+		return view;
+	}
+
+	private markSeen(view: WorktreeView) {
+		this.settings = { ...this.settings, seen: { ...this.settings.seen, [view.id]: view.since ?? 0 } };
+		this.persist(this.settings);
+		this.views = this.views.map((v) => (v.id === view.id ? { ...v, status: "idle", unread: false } : v));
+	}
+
 	/** Shows the worktree behind `slot` in the infobar. */
 	touch(slot: number) {
 		const state = this.slot(slot);
@@ -231,6 +254,7 @@ export class OrcaStore {
 		if (state.kind !== "worktree") return;
 		const { view } = state;
 		this.focus = { id: view.id, at: Date.now() };
+		if (view.status === "done") this.markSeen(view);
 
 		const { terminals } = await this.cli.run<{ terminals: { handle: string; connected?: boolean }[] }>([
 			"terminal",

@@ -5,11 +5,11 @@ import { delimiter, join } from "node:path";
 
 /** Error returned by the Orca CLI (`{ ok: false, error: { code, message } }`) or by spawning it. */
 export class OrcaError extends Error {
-	constructor(
-		readonly code: string,
-		message: string,
-	) {
+	readonly code: string;
+
+	constructor(code: string, message: string) {
 		super(message);
+		this.code = code;
 	}
 }
 
@@ -52,7 +52,11 @@ export function resolveOrcaBinary(override?: string): string | null {
 }
 
 export class OrcaCli {
-	constructor(private readonly getBinary: () => string | null) {}
+	private readonly getBinary: () => string | null;
+
+	constructor(getBinary: () => string | null) {
+		this.getBinary = getBinary;
+	}
 
 	/** Runs `orca <args> --json` and returns `result`, throwing {@link OrcaError} on failure. */
 	run<T = unknown>(args: string[], timeoutMs = 15_000): Promise<T> {
