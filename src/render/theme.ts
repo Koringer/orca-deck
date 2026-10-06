@@ -16,11 +16,12 @@ export const MUTED = "#C8CCD6";
 export const FONT = "Helvetica Neue, Helvetica, Arial, sans-serif";
 
 /**
- * Breathing level 0..1 (the key's border goes from thin to full width and back), quantized to 12
- * steps so the key image only changes about 24 times per cycle. 1 (full border) when not breathing.
+ * Breathing level 0..1 (the key's border swells from its base width to full width and back),
+ * quantized to 12 steps so the key image only changes about 24 times per cycle. 0 (base width) when
+ * the status doesn't breathe.
  */
 export function breathe(now: number, periodMs: number | null): number {
-	if (!periodMs) return 1;
+	if (!periodMs) return 0;
 	const phase = (now % periodMs) / periodMs;
 	const v = 0.5 - 0.5 * Math.cos(phase * 2 * Math.PI);
 	return Math.round(v * 12) / 12;

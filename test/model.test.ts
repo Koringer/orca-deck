@@ -75,7 +75,7 @@ test("breathe stays in range and idle is static", () => {
 		const o = breathe(t, 1000);
 		assert.ok(o >= 0 && o <= 1);
 	}
-	assert.equal(breathe(123, null), 1);
+	assert.equal(breathe(123, null), 0, "static statuses keep the base (thin) border");
 });
 
 test("renders every key state as valid-looking SVG", () => {

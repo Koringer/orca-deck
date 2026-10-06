@@ -20,12 +20,12 @@ function text(x: number, y: number, size: number, fill: string, value: string, w
 	return `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="middle">${esc(value)}</text>`;
 }
 
-/** Thinnest border while breathing. */
+/** Border width of every key; breathing statuses swell from it up to BORDER. */
 const MIN_BORDER = 8;
 /** Corner radius of the border's outer edge, kept constant while its width changes. */
 const OUTER_RADIUS = 29;
 
-/** `level` 0..1: border width from MIN_BORDER to BORDER, growing inward from a fixed outer edge. */
+/** `level` 0..1: border width from MIN_BORDER (static) to BORDER, growing inward from a fixed outer edge. */
 function frame(color: string, level: number, body: string) {
 	const width = MIN_BORDER + (BORDER - MIN_BORDER) * level;
 	const inset = width / 2;
@@ -76,7 +76,7 @@ function nameBlock(name: string, now: number): string {
 function holdOverlay(progress: number, label: string): string {
 	const w = SIZE - 2 * BORDER - 12;
 	return (
-		`<rect x="${BORDER}" y="${BORDER}" width="${SIZE - 2 * BORDER}" height="${SIZE - 2 * BORDER}" rx="10" fill="#000"/>` +
+		`<rect x="${MIN_BORDER}" y="${MIN_BORDER}" width="${SIZE - 2 * MIN_BORDER}" height="${SIZE - 2 * MIN_BORDER}" rx="${OUTER_RADIUS - MIN_BORDER}" fill="#000"/>` +
 		text(72, 66, 40, "#FFFFFF", "↻", 400) +
 		text(72, 92, 15, "#FFFFFF", label) +
 		`<rect x="${BORDER + 6}" y="104" width="${w}" height="8" rx="4" fill="#333845"/>` +
@@ -86,7 +86,7 @@ function holdOverlay(progress: number, label: string): string {
 
 export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
 	if (connection === "no-cli") {
-		return frame(STATUS_STYLE.error.color, 1, text(72, 60, 22, "#FFF", "ORCA") + text(72, 86, 14, MUTED, "CLI not found"));
+		return frame(STATUS_STYLE.error.color, 0, text(72, 60, 22, "#FFF", "ORCA") + text(72, 86, 14, MUTED, "CLI not found"));
 	}
 	if (connection === "offline" || connection === "starting") {
 		const label = connection === "starting" ? "connecting…" : "offline";
@@ -99,15 +99,15 @@ export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
 
 	const pending = slot.pending;
 	if (pending?.kind === "awaiting") {
-		return frame("#FFFFFF", 1, text(72, 58, 17, "#FFF", "NAME IT") + text(72, 80, 17, "#FFF", "IN ORCA") + text(72, 106, 13, MUTED, "waiting…", 500));
+		return frame("#FFFFFF", 0, text(72, 58, 17, "#FFF", "NAME IT") + text(72, 80, 17, "#FFF", "IN ORCA") + text(72, 106, 13, MUTED, "waiting…", 500));
 	}
 	if (pending?.kind === "error") {
-		return frame(STATUS_STYLE.error.color, 1, text(72, 58, 18, "#FFF", "FAILED") + text(72, 86, 14, "#FFF", marquee(pending.message, 12, now, 180)));
+		return frame(STATUS_STYLE.error.color, 0, text(72, 58, 18, "#FFF", "FAILED") + text(72, 86, 14, "#FFF", marquee(pending.message, 12, now, 180)));
 	}
 
 	if (slot.kind === "empty") {
 		const body = text(72, 96, 84, "#6B7280", "+", 300);
-		return frame("#2A2E38", 1, hold !== null && hold > 0.15 ? body + holdOverlay(hold, "NEW TASK") : body);
+		return frame("#2A2E38", 0, hold !== null && hold > 0.15 ? body + holdOverlay(hold, "NEW TASK") : body);
 	}
 
 	const { view } = slot;
