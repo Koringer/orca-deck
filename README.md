@@ -11,13 +11,13 @@ A Stream Deck plugin (built for the **Stream Deck Neo**): one key per [Orca](htt
 
 The deck never deletes or creates worktrees by itself: it shows a selection of your Orca worktrees and opens Orca's dialog to create new ones (`+`, long press). A worktree taken off the deck comes back as soon as its agent changes state.
 
-**Thick border = status** (it "breathes", except when idle):
-🟠 working · 🟡 background (pure yellow: turn over, a background task it started is still running, Orca's "Monitoring background tasks") · 🔵 input (only when the agent actually needs you: a question, a permission, a plan to approve) · 🟢 done (breathes until seen) · 🔴 error · 🟣 review · ⚫ idle (grey, static)
+**Thick border = status** (only input and error "breathe", to catch your eye):
+🟠 working · 🟡 background (pure yellow: turn over, a background task it started is still running, Orca's "Monitoring background tasks") · 🔵 input (only when the agent actually needs you: a question, a permission, a plan to approve) · 🟢 done · 🔴 error · 🟣 review · ⚫ idle (grey)
 
 **Key name**: the agent's conversation title (e.g. "Fix login redirect"), on up to 3 lines; the font shrinks instead of scrolling. Falls back to a name you set in Orca, then the branch Orca auto-renamed from the work, then the generated name.
 
 **Neo infobar**:
-- line 1: when the worktree shown in Orca is on the deck, **its context window** (`ctx` gauge, % and tokens, like Claude Code's status line); otherwise the agent status counters `ask / work / done / idle`, plus `+N` worktrees without a key;
+- line 1: when the worktree shown in Orca is on the deck, **its context window** (`ctx` gauge and %, like Claude Code's status line); otherwise the agent status counters `ask / work / done / idle`, plus `+N` worktrees without a key;
 - line 2: always **token usage**: 5-hour and weekly gauges, or the monthly spend cap (`mo` gauge + "$36 / $100") on organization plans.
 
 Usage is read like Claude Code's `/usage`: the plugin reads Claude Code's login token (macOS Keychain item "Claude Code-credentials", or `~/.claude/.credentials.json`) and asks Anthropic's usage endpoint, at most every 5 minutes. The token is only read and only sent to `api.anthropic.com`; it is never stored, refreshed or logged. The first time, macOS asks to allow access to that Keychain item. If it's unavailable, the plugin falls back to what Orca reports (`orca account list`).

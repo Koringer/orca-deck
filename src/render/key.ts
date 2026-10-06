@@ -92,7 +92,7 @@ export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
 
 	const pending = slot.pending;
 	if (pending?.kind === "awaiting") {
-		return frame("#FFFFFF", breathe(now, 1200), text(72, 58, 17, "#FFF", "NAME IT") + text(72, 80, 17, "#FFF", "IN ORCA") + text(72, 106, 13, MUTED, "waiting…", 500));
+		return frame("#FFFFFF", 1, text(72, 58, 17, "#FFF", "NAME IT") + text(72, 80, 17, "#FFF", "IN ORCA") + text(72, 106, 13, MUTED, "waiting…", 500));
 	}
 	if (pending?.kind === "error") {
 		return frame(STATUS_STYLE.error.color, 1, text(72, 58, 18, "#FFF", "FAILED") + text(72, 86, 14, "#FFF", marquee(pending.message, 12, now, 180)));
@@ -105,13 +105,11 @@ export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
 
 	const { view } = slot;
 	const style = STATUS_STYLE[view.status];
-	// "done" only breathes until it has been looked at in Orca.
-	const period = view.status === "done" && !view.unread ? null : style.breatheMs;
 	// Long labels (BACKGROUND) get a smaller font so they stay inside the border.
 	const labelSize = Math.min(17, Math.floor((SIZE - 2 * BORDER - 8) / (style.label.length * 0.8)));
 	let body = nameBlock(view.name, now) + text(72, 114, labelSize, style.color, style.label);
 	if (hold !== null && hold > 0.15) body += holdOverlay(hold, "NEW TASK");
-	return frame(style.color, breathe(now, period), body);
+	return frame(style.color, breathe(now, style.breatheMs), body);
 }
 
 export function toDataUrl(svg: string): string {
