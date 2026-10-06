@@ -31,9 +31,10 @@ test("status priority: input beats working beats done", () => {
 	assert.equal(v.since, 9);
 });
 
-test("monitoring background tasks (turn over, waiting for the user) is input", () => {
-	assert.equal(toView(row({ agents: [{ state: "working", workingMode: "monitoring" }] })).status, "input");
-	assert.equal(toView(row({ status: "working", workingMode: "monitoring" })).status, "input");
+test("monitoring background tasks is its own status, not input", () => {
+	assert.equal(toView(row({ agents: [{ state: "working", workingMode: "monitoring" }] })).status, "background");
+	assert.equal(toView(row({ status: "working", workingMode: "monitoring" })).status, "background");
+	assert.equal(toView(row({ agents: [{ state: "working", workingMode: "monitoring" }, { state: "waiting" }] })).status, "input");
 	assert.equal(toView(row({ agents: [{ state: "working" }] })).status, "working");
 });
 

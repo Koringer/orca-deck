@@ -107,7 +107,9 @@ export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
 	const style = STATUS_STYLE[view.status];
 	// "done" only breathes until it has been looked at in Orca.
 	const period = view.status === "done" && !view.unread ? null : style.breatheMs;
-	let body = nameBlock(view.name, now) + text(72, 114, 17, style.color, style.label);
+	// Long labels (BACKGROUND) get a smaller font so they stay inside the border.
+	const labelSize = Math.min(17, Math.floor((SIZE - 2 * BORDER - 8) / (style.label.length * 0.8)));
+	let body = nameBlock(view.name, now) + text(72, 114, labelSize, style.color, style.label);
 	if (hold !== null && hold > 0.15) body += holdOverlay(hold, "NEW TASK");
 	return frame(style.color, breathe(now, period), body);
 }

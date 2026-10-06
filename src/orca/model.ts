@@ -33,7 +33,7 @@ export type OrcaPsRow = {
 	createdAt?: number;
 };
 
-export type DeckStatus = "input" | "error" | "working" | "done" | "review" | "idle";
+export type DeckStatus = "input" | "error" | "working" | "background" | "done" | "review" | "idle";
 
 export type WorktreeView = {
 	id: string;
@@ -55,7 +55,7 @@ export type WorktreeView = {
 	lastActivityAt: number;
 };
 
-const STATUS_PRIORITY: DeckStatus[] = ["input", "error", "working", "done", "review", "idle"];
+const STATUS_PRIORITY: DeckStatus[] = ["input", "error", "working", "background", "done", "review", "idle"];
 
 function agentStatus(a: OrcaAgent): DeckStatus {
 	switch (a.state) {
@@ -67,12 +67,12 @@ function agentStatus(a: OrcaAgent): DeckStatus {
 			return "error";
 		case "interrupted":
 			return "error";
-		// Orca's "Monitoring background tasks" (pulse icon): the agent ended its turn and is waiting for
-		// the user while a background task it started keeps running.
+		// Orca's "Monitoring background tasks" (pulse icon): the agent ended its turn while a background
+		// task it started (subagent, build, server...) keeps running. Not necessarily waiting for the user.
 		case "monitoring":
-			return "input";
+			return "background";
 		case "working":
-			return a.workingMode === "monitoring" ? "input" : "working";
+			return a.workingMode === "monitoring" ? "background" : "working";
 		case "done":
 			return a.interrupted ? "error" : "done";
 		default:
@@ -85,7 +85,7 @@ function rowStatus(row: OrcaPsRow): DeckStatus {
 		case "permission":
 			return "input";
 		case "working":
-			return row.workingMode === "monitoring" ? "input" : "working";
+			return row.workingMode === "monitoring" ? "background" : "working";
 		case "done":
 			return "done";
 		default:

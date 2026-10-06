@@ -7,7 +7,7 @@ export const INFOBAR_LAYOUT = "layouts/infobar.json";
 
 const COUNTS: { key: string; status: DeckStatus[]; label: string }[] = [
 	{ key: "c1", status: ["input", "error"], label: "ask" },
-	{ key: "c2", status: ["working"], label: "work" },
+	{ key: "c2", status: ["working", "background"], label: "work" },
 	{ key: "c3", status: ["done", "review"], label: "done" },
 	{ key: "c4", status: ["idle"], label: "idle" },
 ];
