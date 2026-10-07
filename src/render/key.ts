@@ -14,9 +14,9 @@ export type KeyFrame = {
 	hold: number | null;
 };
 
-const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function text(x: number, y: number, size: number, fill: string, value: string, weight = 700) {
+export function text(x: number, y: number, size: number, fill: string, value: string, weight = 700) {
 	return `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="middle">${esc(value)}</text>`;
 }
 
@@ -26,7 +26,7 @@ const MIN_BORDER = 8;
 const OUTER_RADIUS = 29;
 
 /** `level` 0..1: border width from MIN_BORDER (static) to BORDER, growing inward from a fixed outer edge. */
-function frame(color: string, level: number, body: string) {
+export function frame(color: string, level: number, body: string) {
 	const width = MIN_BORDER + (BORDER - MIN_BORDER) * level;
 	const inset = width / 2;
 	return (

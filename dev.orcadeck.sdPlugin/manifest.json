@@ -1,9 +1,9 @@
 {
 	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
 	"Name": "Orca Deck",
-	"Version": "0.3.8.0",
+	"Version": "0.4.0.0",
 	"Author": "Jérémie Paret",
-	"Description": "One key per Orca worktree with live agent status. Press to focus, hold to swap in a fresh worktree (never deletes), + to start a new one. Neo infobar shows agent status counters (or the active agent's context window) and token usage.",
+	"Description": "One key per Orca worktree with live agent status. Press to focus, hold to swap in a fresh worktree (never deletes), + to start a new one. Neo infobar (or the Orca Status key on decks without one, like Stream Deck Mobile) shows agent status counters (or the active agent's context window) and token usage.",
 	"UUID": "dev.orcadeck",
 	"Icon": "imgs/plugin/icon",
 	"Category": "Orca Deck",
@@ -46,6 +46,22 @@
 			]
 		},
 		{
+			"Name": "Orca Status",
+			"UUID": "dev.orcadeck.status",
+			"Icon": "imgs/actions/infobar/icon",
+			"Tooltip": "The Neo infobar as a key, for decks without one (Stream Deck Mobile, Mini, MK.2…): active agent's context window or status counters, and token usage. Press: bring Orca to the front.",
+			"Controllers": [
+				"Keypad"
+			],
+			"SupportedInMultiActions": false,
+			"States": [
+				{
+					"Image": "imgs/actions/infobar/icon",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
 			"Name": "Orca Infobar",
 			"UUID": "dev.orcadeck.infobar",
 			"Icon": "imgs/actions/infobar/icon",
@@ -64,6 +80,10 @@
 		{
 			"Name": "profiles/orca-deck",
 			"DeviceType": 9
+		},
+		{
+			"Name": "profiles/orca-deck-mobile",
+			"DeviceType": 3
 		}
 	]
 }

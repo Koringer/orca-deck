@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { toView, type OrcaPsRow } from "../src/orca/model.ts";
 import { renderInfobar } from "../src/render/infobar.ts";
 import { renderKey, wrap } from "../src/render/key.ts";
+import { renderStatus } from "../src/render/status.ts";
 import { breathe, marquee } from "../src/render/theme.ts";
 
 const row = (over: Partial<OrcaPsRow> = {}): OrcaPsRow => ({
@@ -112,4 +113,17 @@ test("infobar: line 1 status counters, line 2 always usage", () => {
 
 	const offline = renderInfobar({ connection: "offline", views: [], hidden: 0, usage, now: 0 });
 	assert.equal(offline.u1p.value, "72%");
+});
+
+test("status key: counters and usage when no agent is shown in Orca, context otherwise", () => {
+	const usage = { provider: "claude", session: { usedPercent: 23, resetsAt: null }, weekly: { usedPercent: 51, resetsAt: null } };
+	const views = [toView(row({ agents: [{ state: "waiting", agentType: "claude" }] }))];
+	const counts = renderStatus({ connection: "ok", views, usage, now: 0 });
+	assert.match(counts, />1 ask</);
+	assert.match(counts, />23%</);
+	assert.match(counts, />51%</);
+	const ctx = renderStatus({ connection: "ok", views, usage, activeContext: { worktreeId: "w", name: "Fix login", context: { tokens: 1, window: 1, percent: 42.4, model: null } }, now: 0 });
+	assert.match(ctx, />ctx</);
+	assert.match(ctx, />42%</);
+	assert.doesNotMatch(ctx, /ask/);
 });

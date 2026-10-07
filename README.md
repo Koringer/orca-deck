@@ -1,6 +1,6 @@
 # Orca Deck
 
-A Stream Deck plugin (built for the **Stream Deck Neo**): one key per [Orca](https://www.onorca.dev) worktree, with its agent's status live.
+A Stream Deck plugin (built for the **Stream Deck Neo**, also works **without any hardware** through the free Stream Deck Mobile app): one key per [Orca](https://www.onorca.dev) worktree, with its agent's status live.
 
 | Gesture | Effect |
 |---|---|
@@ -39,9 +39,21 @@ Requires the **Stream Deck app ≥ 7.6** (macOS or Windows) and **Orca**.
 The `orca` CLI is detected automatically (PATH, `/Applications/Orca.app`, `%LOCALAPPDATA%\Programs\Orca`).
 For a second Neo page, set `Neo page = 2` on its keys: they show worktrees 9 to 16.
 
+### No Stream Deck? Use your phone (Stream Deck Mobile)
+
+Stream Deck Mobile turns an iPhone, iPad or Android device into a Stream Deck: 6 keys for free, plugins included (a Pro subscription unlocks more keys). The phone is only a screen for the Stream Deck app on your Mac, which keeps the profiles, so there is nothing extra to download: the same plugin file carries a Mobile profile.
+
+1. Install the [Stream Deck app](https://www.elgato.com/s/stream-deck-app) on the Mac (free, no hardware needed) and **Stream Deck Mobile** on the phone ([App Store](https://apps.apple.com/app/elgato-stream-deck-mobile/id1440014184) / Google Play).
+2. Pair them: in the Mac app, open the device menu → **Add Mobile Device** and scan the QR code from the phone ("Add computer"). Keep the 3 × 2 layout (phone app → Settings → Keypad layout).
+3. Double-click `dev.orcadeck.streamDeckPlugin` from [Releases](https://github.com/Koringer/orca-deck/releases) (or install it again if you already had it). The **Orca Deck** profile lands on the phone: **Orca Status** top left + 5 Worktree keys.
+
+**Orca Status** is the Neo infobar as a key: top half = the active agent's context window (`ctx`) or the `ask / work / done / idle` counters; bottom half = token usage (`5h` / `7d`, or `mo` and the spend cap). Pressing it brings Orca to the front.
+
+If the profile doesn't show up on the phone, select the phone in the Mac app and drag **Orca Status** and **Worktree** (category *Orca Deck*) onto its keys; with a Pro layout, add as many Worktree keys as you like.
+
 ### Other Stream Deck models
 
-The **Worktree** key works on every model with LCD keys (Mini, MK.2, XL, +, Studio, Mobile); key positions adapt to the device size. The infobar and the bundled profile are Neo-only: on other models, drag the Worktree action onto the keys yourself.
+The **Worktree** and **Orca Status** keys work on every model with LCD keys (Mini, MK.2, XL, +, Studio, Mobile); key positions adapt to the device size. The infobar is Neo-only, and profiles are bundled for the Neo and Mobile: on other models, drag the actions onto the keys yourself.
 
 ## Development
 

@@ -1,6 +1,8 @@
-// Generates dev.orcadeck.sdPlugin/profiles/orca-deck.streamDeckProfile: a Stream Deck Neo page with
-// the 8 keys set to "Worktree" and the infobar set to "Orca Infobar". The plugin manifest installs it
-// with the plugin and switches the Neo to it, so a fresh machine needs no drag and drop.
+// Generates the profiles the plugin manifest installs with the plugin, so a fresh machine needs no drag
+// and drop:
+// - profiles/orca-deck.streamDeckProfile: Stream Deck Neo, 8 "Worktree" keys + "Orca Infobar";
+// - profiles/orca-deck-mobile.streamDeckProfile: Stream Deck Mobile (free 3 × 2 layout), "Orca Status"
+//   top left (the infobar as a key) + 5 "Worktree" keys.
 import { zipSync, strToU8 } from "fflate";
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -27,40 +29,61 @@ const action = (uuid_, name, coord, states) => ({
 });
 
 const keyState = { FontFamily: "", FontSize: 12, FontStyle: "", FontUnderline: false, OutlineThickness: 2, ShowTitle: false, TitleAlignment: "bottom", TitleColor: "#ffffff" };
-const keys = {};
-for (let col = 0; col < 4; col++) for (let row = 0; row < 2; row++) keys[`${col},${row}`] = action("dev.orcadeck.worktree", "Worktree", `${col},${row}`, [keyState]);
 
-const profileId = uuid("profile");
-const pageId = uuid("page");
-const defaultPageId = uuid("default-page");
-const root = `Profiles/${profileId}.sdProfile`;
+function grid(columns, rows, special = {}) {
+	const keys = {};
+	for (let col = 0; col < columns; col++)
+		for (let row = 0; row < rows; row++) {
+			const coord = `${col},${row}`;
+			const [uuid_, name] = special[coord] ?? ["dev.orcadeck.worktree", "Worktree"];
+			keys[coord] = action(uuid_, name, coord, [keyState]);
+		}
+	return keys;
+}
 
-const page = {
-	Controllers: [
-		{ Actions: { "1,0": action("dev.orcadeck.infobar", "Orca Infobar", "infobar", [{}]) }, Type: "Neo" },
-		{ Actions: keys, Type: "Keypad" },
-	],
-	Icon: "",
-	Name: "",
-};
-const emptyPage = { Controllers: [{ Actions: {}, Type: "Keypad" }, { Actions: {}, Type: "Neo" }], Icon: "", Name: "" };
-
-const files = {
-	"package.json": strToU8(
-		JSON.stringify({ AppVersion: "7.6.0.0", DeviceModel: "20GBJ9901", DeviceSettings: null, FormatVersion: 1, OSType: "macOS", OSVersion: "13.0", RequiredPlugins: [plugin.UUID] }),
-	),
-	[`${root}/manifest.json`]: strToU8(
-		JSON.stringify({
-			Device: { Model: "20GBJ9901", UUID: "" },
-			Name: "Orca Deck",
-			Pages: { Current: pageId.toLowerCase(), Default: defaultPageId.toLowerCase(), Pages: [pageId.toLowerCase()] },
-			Version: "3.0",
-		}),
-	),
-	[`${root}/Profiles/${pageId}/manifest.json`]: strToU8(JSON.stringify(page)),
-	[`${root}/Profiles/${defaultPageId}/manifest.json`]: strToU8(JSON.stringify(emptyPage)),
-};
+function profile({ file, seed, model, controllers }) {
+	const profileId = uuid(`${seed}profile`);
+	const pageId = uuid(`${seed}page`);
+	const defaultPageId = uuid(`${seed}default-page`);
+	const root = `Profiles/${profileId}.sdProfile`;
+	const page = { Controllers: controllers, Icon: "", Name: "" };
+	const emptyPage = { Controllers: controllers.map((c) => ({ Actions: {}, Type: c.Type })), Icon: "", Name: "" };
+	const files = {
+		"package.json": strToU8(
+			JSON.stringify({ AppVersion: "7.6.0.0", DeviceModel: model, DeviceSettings: null, FormatVersion: 1, OSType: "macOS", OSVersion: "13.0", RequiredPlugins: [plugin.UUID] }),
+		),
+		[`${root}/manifest.json`]: strToU8(
+			JSON.stringify({
+				Device: { Model: model, UUID: "" },
+				Name: "Orca Deck",
+				Pages: { Current: pageId.toLowerCase(), Default: defaultPageId.toLowerCase(), Pages: [pageId.toLowerCase()] },
+				Version: "3.0",
+			}),
+		),
+		[`${root}/Profiles/${pageId}/manifest.json`]: strToU8(JSON.stringify(page)),
+		[`${root}/Profiles/${defaultPageId}/manifest.json`]: strToU8(JSON.stringify(emptyPage)),
+	};
+	const out = `dev.orcadeck.sdPlugin/profiles/${file}.streamDeckProfile`;
+	writeFileSync(out, zipSync(files, { mtime: new Date("2026-01-01") }));
+	console.log(`profile: ${out}`);
+}
 
 mkdirSync("dev.orcadeck.sdPlugin/profiles", { recursive: true });
-writeFileSync("dev.orcadeck.sdPlugin/profiles/orca-deck.streamDeckProfile", zipSync(files, { mtime: new Date("2026-01-01") }));
-console.log("profile: dev.orcadeck.sdPlugin/profiles/orca-deck.streamDeckProfile");
+
+// Seeds kept as before for the Neo so its profile (and the ids the app already knows) doesn't change.
+profile({
+	file: "orca-deck",
+	seed: "",
+	model: "20GBJ9901",
+	controllers: [
+		{ Actions: { "1,0": action("dev.orcadeck.infobar", "Orca Infobar", "infobar", [{}]) }, Type: "Neo" },
+		{ Actions: grid(4, 2), Type: "Keypad" },
+	],
+});
+
+profile({
+	file: "orca-deck-mobile",
+	seed: "mobile:",
+	model: "VSD/WiFi",
+	controllers: [{ Actions: grid(3, 2, { "0,0": ["dev.orcadeck.status", "Orca Status"] }), Type: "Keypad" }],
+});
