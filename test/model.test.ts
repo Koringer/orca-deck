@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { toView, type OrcaPsRow } from "../src/orca/model.ts";
+import { orchestrators, toView, type OrcaPsRow } from "../src/orca/model.ts";
 import { renderInfobar } from "../src/render/infobar.ts";
 import { renderKey, wrap } from "../src/render/key.ts";
 import { renderStatus } from "../src/render/status.ts";
@@ -126,4 +126,38 @@ test("status key: counters and usage when no agent is shown in Orca, context oth
 	assert.match(ctx, />ctx</);
 	assert.match(ctx, />42%</);
 	assert.doesNotMatch(ctx, /ask/);
+});
+
+test("orchestrators: coordinator worktree counts its workers still in progress", () => {
+	const terminals = new Map([
+		["term_coord", "r::/w/coord"],
+		["term_w1", "r::/w/w1"],
+	]);
+	const runs = [
+		{ id: "run_1", coordinator_handle: "term_coord" },
+		{ id: "run_legacy", coordinator_handle: null },
+		{ id: "run_gone", coordinator_handle: "term_closed" },
+	];
+	const workers = [
+		{ runId: "run_1", terminalState: "active", projection: { outcome: "in_progress" } },
+		{ runId: "run_1", terminalState: "active", projection: { outcome: "in_progress" } },
+		{ runId: "run_1", terminalState: "reclaimable", projection: { outcome: "succeeded" } },
+		{ runId: "run_1", terminalState: "released", projection: { outcome: "succeeded" } },
+		{ runId: "run_gone", terminalState: "active", projection: { outcome: "in_progress" } },
+		{ runId: "run_legacy", terminalState: "active", projection: { outcome: "in_progress" } },
+	];
+	assert.deepEqual([...orchestrators(workers, runs, terminals)], [["r::/w/coord", 2]]);
+
+	// All workers finished but not released yet: still a coordinator, with 0 in progress.
+	assert.deepEqual([...orchestrators(workers.slice(2, 3), runs, terminals)], [["r::/w/coord", 0]]);
+	assert.equal(orchestrators([], runs, terminals).size, 0);
+});
+
+test("orchestrator badge is drawn only on coordinator keys, in the status color", () => {
+	const view = toView(row({ agents: [{ state: "working" }] }));
+	const plain = renderKey({ connection: "ok", slot: { kind: "worktree", view }, now: 0, hold: null });
+	const badged = renderKey({ connection: "ok", slot: { kind: "worktree", view: { ...view, workers: 3 } }, now: 0, hold: null });
+	assert.ok(!plain.includes('height="22" rx="11"'));
+	assert.ok(badged.includes('height="22" rx="11" fill="#FFB020"'));
+	assert.ok(badged.includes(">3</text>"));
 });

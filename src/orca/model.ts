@@ -57,6 +57,8 @@ export type WorktreeView = {
 	isArchived: boolean;
 	createdAt: number;
 	lastActivityAt: number;
+	/** Set when an agent in this worktree coordinates an orchestration Run: its workers still in progress. */
+	workers: number | null;
 };
 
 const STATUS_PRIORITY: DeckStatus[] = ["input", "error", "working", "background", "done", "review", "idle"];
@@ -162,6 +164,7 @@ export function toView(row: OrcaPsRow, agentTitle = ""): WorktreeView {
 		isArchived: !!row.isArchived,
 		createdAt: row.createdAt ?? 0,
 		lastActivityAt: Math.max(row.lastActivityAt ?? 0, ...agents.map((a) => a.updatedAt ?? a.stateStartedAt ?? 0)),
+		workers: null,
 	};
 }
 
@@ -169,4 +172,25 @@ function activityOf(a: OrcaAgent | undefined): string {
 	if (!a) return "";
 	if (a.state === "working" && a.toolName) return a.toolName;
 	return (a.lastAssistantMessage ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
+}
+
+/** Subset of a row in `orca orchestration worker-list --json`. */
+export type OrcaWorker = { runId?: string; terminalState?: string; projection?: { outcome?: string } };
+/** Subset of a row in `orca orchestration run-list --json`. */
+export type OrcaRun = { id: string; coordinator_handle?: string | null };
+
+/**
+ * Coordinator worktree id → number of its workers still in progress. A worktree is a coordinator when
+ * one of its terminals is the coordinator of a Run that has workers (finished ones count until they are
+ * released). Orca's worktree lineage (`childWorktreeIds`) can't tell: every worktree is a child of main.
+ */
+export function orchestrators(workers: OrcaWorker[], runs: OrcaRun[], terminalWorktree: Map<string, string>): Map<string, number> {
+	const coordinator = new Map(runs.map((r) => [r.id, r.coordinator_handle ? terminalWorktree.get(r.coordinator_handle) : undefined]));
+	const counts = new Map<string, number>();
+	for (const w of workers) {
+		const worktree = w.runId ? coordinator.get(w.runId) : undefined;
+		if (!worktree || w.terminalState === "released") continue;
+		counts.set(worktree, (counts.get(worktree) ?? 0) + (w.projection?.outcome === "in_progress" ? 1 : 0));
+	}
+	return counts;
 }

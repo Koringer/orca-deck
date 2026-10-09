@@ -3,7 +3,7 @@ import { execFile } from "node:child_process";
 import { contextForWorktree, type ContextUsage } from "../claude/context.ts";
 import { ClaudeUsageError, fetchClaudeUsage, type Money } from "../claude/usage.ts";
 import { OrcaCli, OrcaError } from "./cli.ts";
-import { toView, type OrcaPsRow, type WorktreeView } from "./model.ts";
+import { orchestrators, toView, type OrcaPsRow, type OrcaRun, type OrcaWorker, type WorktreeView } from "./model.ts";
 
 export type GlobalSettings = {
 	/** Absolute path to the `orca` CLI; auto-detected when empty. */
@@ -54,7 +54,7 @@ type RateLimits = Record<
 	{ session?: RateLimitWindow | null; weekly?: RateLimitWindow | null; status?: string; error?: string | null } | undefined
 >;
 
-type TerminalRow = { worktreeId?: string; title?: string | null; agentIdentity?: string | null; lastOutputAt?: number | null };
+type TerminalRow = { handle?: string; worktreeId?: string; title?: string | null; agentIdentity?: string | null; lastOutputAt?: number | null };
 
 /** How long a key waits for the worktree created in Orca's dialog. */
 const AWAIT_MS = 3 * 60_000;
@@ -63,6 +63,9 @@ const USAGE_POLL_MS = 60_000;
 /** Anthropic's usage endpoint is rate limited (Orca polls it too), so it's asked at most every 5 minutes. */
 const CLAUDE_API_POLL_MS = 5 * 60_000;
 const HOOKS_POLL_MS = 5 * 60_000;
+const WORKERS_POLL_MS = 5_000;
+/** Runs are only listed again when a worker belongs to an unknown one, or to catch a coordinator moving terminal. */
+const RUNS_POLL_MS = 60_000;
 
 type HooksStatus = { enabled?: boolean; statuses?: { agent: string; managedHooksPresent?: boolean }[] };
 
@@ -82,6 +85,10 @@ export class OrcaStore {
 	activeContext: ActiveContext | null = null;
 	private hooksAt = 0;
 	private hooksRepairTried = false;
+	private workers: OrcaWorker[] = [];
+	private workersAt = 0;
+	private runs: OrcaRun[] = [];
+	private runsAt = 0;
 
 	private settings: GlobalSettings = {};
 	private readonly slotMap = new Map<number, string>();
@@ -266,12 +273,18 @@ export class OrcaStore {
 		if (this.polling) return;
 		this.polling = true;
 		try {
-			const [result, titles] = await Promise.all([
+			const [result, terminals] = await Promise.all([
 				this.cli.run<{ worktrees: OrcaPsRow[] }>(["worktree", "ps", "--limit", "200"]),
-				this.agentTitles(),
+				this.terminals(),
 			]);
+			const titles = agentTitles(terminals);
+			const coordinators = orchestrators(
+				this.workers,
+				this.runs,
+				new Map(terminals.filter((t) => t.handle && t.worktreeId).map((t) => [t.handle!, t.worktreeId!])),
+			);
 			this.views = result.worktrees
-				.map((row) => this.applySeen(toView(row, titles.get(row.worktreeId))))
+				.map((row) => this.applySeen({ ...toView(row, titles.get(row.worktreeId)), workers: coordinators.get(row.worktreeId) ?? null }))
 				.filter((v) => !v.isArchived && (this.settings.includeMain || !v.isMain));
 			this.connection = "ok";
 			this.pruneDismissed();
@@ -279,6 +292,7 @@ export class OrcaStore {
 			if (Date.now() - this.usageAt > USAGE_POLL_MS) void this.refreshUsage();
 			void this.refreshActiveContext();
 			if (Date.now() - this.hooksAt > HOOKS_POLL_MS) void this.checkHooks();
+			if (Date.now() - this.workersAt > WORKERS_POLL_MS) void this.refreshOrchestration();
 		} catch (e) {
 			const code = e instanceof OrcaError ? e.code : "unknown";
 			this.connection = code === "cli_not_found" ? "no-cli" : "offline";
@@ -287,20 +301,39 @@ export class OrcaStore {
 		}
 	}
 
-	/** worktree id → title of its most recently active agent terminal (the conversation title). */
-	private async agentTitles(): Promise<Map<string, string>> {
-		const titles = new Map<string, string>();
+	private async terminals(): Promise<TerminalRow[]> {
 		try {
 			const { terminals } = await this.cli.run<{ terminals: TerminalRow[] }>(["terminal", "list", "--limit", "500"]);
 			this.recovered("terminal list");
-			const agentTerminals = terminals
-				.filter((t) => t.agentIdentity && t.title && t.worktreeId)
-				.sort((a, b) => (a.lastOutputAt ?? 0) - (b.lastOutputAt ?? 0));
-			for (const t of agentTerminals) titles.set(t.worktreeId!, t.title!);
+			return terminals;
 		} catch (e) {
 			this.logOnce("terminal list", e);
+			return [];
 		}
-		return titles;
+	}
+
+	/**
+	 * Supervised workers of orchestration Runs, to badge their coordinator's key. Finished workers stay
+	 * "reclaimable" until the coordinator releases them; released ones are left out.
+	 */
+	private async refreshOrchestration() {
+		this.workersAt = Date.now();
+		try {
+			const lists = await Promise.all(
+				["active", "reclaimable"].map((state) =>
+					this.cli.run<{ workers: OrcaWorker[] }>(["orchestration", "worker-list", "--terminal-state", state, "--limit", "100"]),
+				),
+			);
+			this.workers = lists.flatMap((l) => l.workers ?? []);
+			const known = new Set(this.runs.map((r) => r.id));
+			if (this.workers.some((w) => w.runId && !known.has(w.runId)) || Date.now() - this.runsAt > RUNS_POLL_MS) {
+				this.runsAt = Date.now();
+				this.runs = (await this.cli.run<{ runs: OrcaRun[] }>(["orchestration", "run-list", "--limit", "100"])).runs ?? [];
+			}
+			this.recovered("orchestration");
+		} catch (e) {
+			this.logOnce("orchestration", e);
+		}
 	}
 
 	private readonly failing = new Set<string>();
@@ -505,4 +538,14 @@ function bringOrcaToFront() {
 /** Changes whenever the worktree's agent changes state. */
 function signature(view: WorktreeView): string {
 	return `${view.status}:${view.since ?? 0}`;
+}
+
+/** worktree id → title of its most recently active agent terminal (the conversation title). */
+function agentTitles(terminals: TerminalRow[]): Map<string, string> {
+	const titles = new Map<string, string>();
+	const agentTerminals = terminals
+		.filter((t) => t.agentIdentity && t.title && t.worktreeId)
+		.sort((a, b) => (a.lastOutputAt ?? 0) - (b.lastOutputAt ?? 0));
+	for (const t of agentTerminals) titles.set(t.worktreeId!, t.title!);
+	return titles;
 }

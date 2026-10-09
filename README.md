@@ -14,6 +14,8 @@ The deck never deletes or creates worktrees by itself: it shows a selection of y
 **Border = status** (every key has the same thin border; input, error and working "breathe": the border swells and comes back):
 🟠 working · 🟡 background (pure yellow: turn over, a background task it started is still running, Orca's "Monitoring background tasks") · 🔵 input (only when the agent actually needs you: a question, a permission, a plan to approve) · 🟢 done · 🔴 error · 🟣 review · ⚫ idle (grey)
 
+**Orchestrators**: a key whose agent coordinates other agents (an [Orca orchestration](https://www.onorca.dev) Run with supervised workers) gets a pill on top of its border, in the status color: ◆ and the number of workers still in progress (`◆ 0` once they're all done but not yet released). Read from `orca orchestration worker-list` and `run-list` every 5 seconds.
+
 **Key name**: the agent's conversation title (e.g. "Fix login redirect"), on up to 3 lines; the font shrinks instead of scrolling. Falls back to a name you set in Orca, then the branch Orca auto-renamed from the work, then the generated name.
 
 **Neo infobar**:

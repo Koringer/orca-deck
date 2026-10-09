@@ -51,7 +51,7 @@ export function resolveOrcaBinary(override?: string): string | null {
 	return appCandidates.find((c) => existsSync(c)) ?? null;
 }
 
-const READ_ONLY = new Set(["worktree ps", "terminal list", "account list", "repo list", "agent hooks status"]);
+const READ_ONLY = new Set(["worktree ps", "terminal list", "account list", "repo list", "agent hooks status", "orchestration worker-list", "orchestration run-list"]);
 
 export class OrcaCli {
 	private readonly getBinary: () => string | null;

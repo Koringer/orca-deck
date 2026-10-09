@@ -73,6 +73,33 @@ function nameBlock(name: string, now: number): string {
 	return text(72, 64, size, "#FFFFFF", marquee(name, fit(size), now, 160, 8));
 }
 
+/** Relative luminance (WCAG) of a `#RRGGBB` color. */
+function luminance(hex: string): number {
+	const [r, g, b] = [1, 3, 5].map((i) => {
+		const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+		return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+	});
+	return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * Orchestrator badge: a pill on the top edge of the border, in the status color, with a diamond and
+ * the number of workers still in progress. It sits on the border so the name keeps its 3 lines.
+ */
+function orchestratorBadge(color: string, workers: number): string {
+	const label = String(workers);
+	const width = 40 + label.length * 9;
+	const x = (SIZE - width) / 2;
+	// Diamond drawn as a path: glyphs like ◆ depend on the fonts of the machine rasterizing the key.
+	const dx = x + 15;
+	const ink = luminance(color) > 0.4 ? BG : "#FFFFFF";
+	return (
+		`<rect x="${x}" y="0" width="${width}" height="22" rx="11" fill="${color}"/>` +
+		`<path d="M${dx} 5.5 L${dx + 5.5} 11 L${dx} 16.5 L${dx - 5.5} 11 Z" fill="${ink}"/>` +
+		`<text x="${dx + 10}" y="16" font-family="${FONT}" font-size="15" font-weight="800" fill="${ink}">${label}</text>`
+	);
+}
+
 function holdOverlay(progress: number, label: string): string {
 	const w = SIZE - 2 * BORDER - 12;
 	return (
@@ -115,6 +142,7 @@ export function renderKey({ connection, slot, now, hold }: KeyFrame): string {
 	// Long labels (BACKGROUND) get a smaller font so they stay inside the border.
 	const labelSize = Math.min(17, Math.floor((SIZE - 2 * BORDER - 8) / (style.label.length * 0.8)));
 	let body = nameBlock(view.name, now) + text(72, 114, labelSize, style.color, style.label);
+	if (view.workers !== null) body += orchestratorBadge(style.color, view.workers);
 	if (hold !== null && hold > 0.15) body += holdOverlay(hold, "NEW TASK");
 	return frame(style.color, breathe(now, style.breatheMs), body);
 }
